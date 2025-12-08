@@ -58,7 +58,7 @@ function generateReceiptHTML(data: any, logoSrc: string) {
           background: #ffffff;
           color: #1a1a1a;
           font-family: 'Arial', sans-serif;
-          font-size: 11px;
+          font-size: 10px;
           line-height: 1.4;
           width: 210mm;
           min-height: 297mm;
@@ -68,7 +68,7 @@ function generateReceiptHTML(data: any, logoSrc: string) {
 
         .page {
           background: #ffffff;
-          padding: 30px 40px;
+          padding: 25px 35px;
           width: 210mm;
           min-height: 297mm;
           position: relative;
@@ -78,8 +78,8 @@ function generateReceiptHTML(data: any, logoSrc: string) {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin-bottom: 40px;
-          padding-bottom: 20px;
+          margin-bottom: 25px;
+          padding-bottom: 15px;
           border-bottom: 2px solid #1a1a1a;
         }
 
@@ -90,133 +90,163 @@ function generateReceiptHTML(data: any, logoSrc: string) {
         }
 
         .title {
-          font-size: 28px;
+          font-size: 26px;
           font-weight: 900;
           color: #1a1a1a;
           letter-spacing: 2px;
           text-transform: uppercase;
         }
 
-        .subtitle {
-          font-size: 12px;
+        .receipt-number {
+          font-size: 14px;
           color: #666;
           margin-top: 5px;
+          font-weight: 600;
         }
 
         .logo {
-          width: 80px;
+          width: 70px;
           height: auto;
         }
 
-        .section {
-          margin-bottom: 25px;
-        }
-
-        .section-title {
-          font-size: 12px;
-          font-weight: bold;
-          color: #1a1a1a;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          margin-bottom: 12px;
-          padding-bottom: 5px;
-          border-bottom: 1px solid #ddd;
-        }
-
-        .info-grid {
-          display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 15px 40px;
-        }
-
-        .info-row {
+        .meta-row {
           display: flex;
           justify-content: space-between;
-          padding: 8px 0;
-          border-bottom: 1px solid #eee;
-        }
-
-        .info-label {
-          color: #666;
-          font-weight: 500;
-        }
-
-        .info-value {
-          color: #1a1a1a;
-          font-weight: 600;
-          text-align: right;
-        }
-
-        .amount-box {
+          margin-bottom: 20px;
+          padding: 12px 15px;
           background: #f8f8f8;
-          border: 2px solid #1a1a1a;
-          border-radius: 8px;
-          padding: 25px;
+          border-radius: 6px;
+        }
+
+        .meta-item {
           text-align: center;
-          margin: 30px 0;
         }
 
-        .amount-label {
-          font-size: 14px;
-          color: #666;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          margin-bottom: 10px;
-        }
-
-        .amount-value {
-          font-size: 36px;
-          font-weight: 900;
-          color: #1a1a1a;
-        }
-
-        .allocations-table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-top: 15px;
-        }
-
-        .allocations-table th,
-        .allocations-table td {
-          padding: 10px 15px;
-          text-align: left;
-          border-bottom: 1px solid #eee;
-        }
-
-        .allocations-table th {
-          background: #f5f5f5;
-          font-weight: 600;
-          color: #1a1a1a;
-          font-size: 10px;
+        .meta-label {
+          font-size: 9px;
+          color: #888;
           text-transform: uppercase;
           letter-spacing: 0.5px;
         }
 
-        .allocations-table td {
-          font-size: 11px;
+        .meta-value {
+          font-size: 12px;
+          font-weight: 700;
+          color: #1a1a1a;
+          margin-top: 2px;
         }
 
-        .allocations-table .amount-col {
-          text-align: right;
+        .section {
+          margin-bottom: 20px;
+        }
+
+        .section-title {
+          font-size: 11px;
+          font-weight: bold;
+          color: #1a1a1a;
+          text-transform: uppercase;
+          letter-spacing: 1px;
+          margin-bottom: 10px;
+          padding-bottom: 5px;
+          border-bottom: 1px solid #ddd;
+        }
+
+        .details-table {
+          width: 100%;
+          border-collapse: collapse;
+        }
+
+        .details-table td {
+          padding: 8px 12px;
+          border: 1px solid #e5e5e5;
+          font-size: 10px;
+        }
+
+        .details-table .label {
+          background: #f5f5f5;
+          font-weight: 600;
+          color: #555;
+          width: 25%;
+        }
+
+        .details-table .value {
+          color: #1a1a1a;
+          width: 25%;
+        }
+
+        .amount-box {
+          background: linear-gradient(135deg, #1a1a1a 0%, #333 100%);
+          border-radius: 10px;
+          padding: 30px;
+          text-align: center;
+          margin: 25px 0;
+          position: relative;
+          overflow: hidden;
+        }
+
+        .amount-box::before {
+          content: '';
+          position: absolute;
+          top: -50%;
+          left: -50%;
+          width: 200%;
+          height: 200%;
+          background: radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 60%);
+          pointer-events: none;
+        }
+
+        .amount-label {
+          font-size: 12px;
+          color: rgba(255,255,255,0.7);
+          text-transform: uppercase;
+          letter-spacing: 2px;
+          margin-bottom: 10px;
+        }
+
+        .amount-value {
+          font-size: 38px;
+          font-weight: 900;
+          color: #ffffff;
+          letter-spacing: 1px;
+        }
+
+        .amount-words {
+          font-size: 10px;
+          color: rgba(255,255,255,0.6);
+          margin-top: 8px;
+          font-style: italic;
+        }
+
+        .payment-method-badge {
+          display: inline-block;
+          background: rgba(255,255,255,0.15);
+          color: #fff;
+          padding: 5px 15px;
+          border-radius: 20px;
+          font-size: 10px;
+          font-weight: 600;
+          margin-top: 12px;
+          text-transform: uppercase;
+          letter-spacing: 1px;
         }
 
         .footer {
           position: absolute;
-          bottom: 30px;
-          left: 40px;
-          right: 40px;
+          bottom: 25px;
+          left: 35px;
+          right: 35px;
           text-align: center;
-          font-size: 9px;
+          font-size: 8px;
           color: #999;
-          padding-top: 20px;
+          padding-top: 15px;
           border-top: 1px solid #eee;
         }
 
         .signature-section {
           display: flex;
           justify-content: space-between;
-          margin-top: 50px;
-          gap: 60px;
+          margin-top: 40px;
+          gap: 50px;
         }
 
         .signature-box {
@@ -224,118 +254,142 @@ function generateReceiptHTML(data: any, logoSrc: string) {
         }
 
         .signature-label {
-          font-size: 10px;
-          color: #666;
+          font-size: 9px;
+          color: #888;
           margin-bottom: 8px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
         }
 
         .signature-line {
-          border-bottom: 1px solid #1a1a1a;
-          height: 50px;
+          border-bottom: 1px solid #ccc;
+          height: 45px;
         }
 
         .stamp {
           position: absolute;
-          top: 50%;
+          top: 45%;
           left: 50%;
           transform: translate(-50%, -50%) rotate(-15deg);
-          font-size: 80px;
+          font-size: 90px;
           font-weight: bold;
-          color: rgba(34, 197, 94, 0.15);
+          color: rgba(34, 197, 94, 0.12);
           text-transform: uppercase;
-          letter-spacing: 10px;
+          letter-spacing: 15px;
           pointer-events: none;
+        }
+
+        .thank-you {
+          text-align: center;
+          margin: 25px 0;
+          padding: 15px;
+          background: #f0fdf4;
+          border: 1px solid #bbf7d0;
+          border-radius: 8px;
+        }
+
+        .thank-you-text {
+          font-size: 12px;
+          color: #166534;
+          font-weight: 600;
+        }
+
+        .thank-you-sub {
+          font-size: 10px;
+          color: #4ade80;
+          margin-top: 3px;
         }
       </style>
     </head>
     <body>
       <div class="page">
-        <div class="stamp">RECEIVED</div>
+        <div class="stamp">PAID</div>
         
         <div class="header">
           <div class="title-section">
             <div class="title">Receipt</div>
-            <div class="subtitle">Payment Confirmation</div>
+            <div class="receipt-number">${data.paymentNumber}</div>
           </div>
           <img src="${logoSrc}" alt="SilberArrows Logo" class="logo">
         </div>
 
-        <div class="section">
-          <div class="info-grid">
-            <div>
-              <div class="info-row">
-                <span class="info-label">Receipt No.</span>
-                <span class="info-value">${data.paymentNumber}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Date</span>
-                <span class="info-value">${formatDate(data.paymentDate)}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Payment Method</span>
-                <span class="info-value">${getPaymentMethodLabel(data.paymentMethod)}</span>
-              </div>
-              ${data.reference ? `
-              <div class="info-row">
-                <span class="info-label">Reference</span>
-                <span class="info-value">${data.reference}</span>
-              </div>
-              ` : ''}
-            </div>
-            <div>
-              <div class="info-row">
-                <span class="info-label">Customer Name</span>
-                <span class="info-value">${data.customerName}</span>
-              </div>
-              <div class="info-row">
-                <span class="info-label">Customer ID</span>
-                <span class="info-value">${data.customerId || '-'}</span>
-              </div>
-              ${data.customerPhone ? `
-              <div class="info-row">
-                <span class="info-label">Contact</span>
-                <span class="info-value">${data.customerPhone}</span>
-              </div>
-              ` : ''}
-            </div>
+        <div class="meta-row">
+          <div class="meta-item">
+            <div class="meta-label">Receipt Date</div>
+            <div class="meta-value">${formatDate(data.paymentDate)}</div>
           </div>
+          <div class="meta-item">
+            <div class="meta-label">Payment Method</div>
+            <div class="meta-value">${getPaymentMethodLabel(data.paymentMethod)}</div>
+          </div>
+          ${data.reference ? `
+          <div class="meta-item">
+            <div class="meta-label">Reference</div>
+            <div class="meta-value">${data.reference}</div>
+          </div>
+          ` : ''}
+          ${data.invoiceNumber ? `
+          <div class="meta-item">
+            <div class="meta-label">Invoice</div>
+            <div class="meta-value">${data.invoiceNumber}</div>
+          </div>
+          ` : ''}
         </div>
 
-        <div class="amount-box">
-          <div class="amount-label">Amount Received</div>
-          <div class="amount-value">${formatCurrency(data.amount)}</div>
-        </div>
-
-        ${data.allocations && data.allocations.length > 0 ? `
         <div class="section">
-          <div class="section-title">Payment Allocation</div>
-          <table class="allocations-table">
-            <thead>
-              <tr>
-                <th>Invoice No.</th>
-                <th class="amount-col">Amount Applied</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${data.allocations.map((alloc: any) => `
-                <tr>
-                  <td>${alloc.invoice_number}</td>
-                  <td class="amount-col">${formatCurrency(alloc.amount)}</td>
-                </tr>
-              `).join('')}
-            </tbody>
+          <div class="section-title">Customer Details</div>
+          <table class="details-table">
+            <tr>
+              <td class="label">Customer Name</td>
+              <td class="value">${data.customerName}</td>
+              <td class="label">Customer ID</td>
+              <td class="value">${data.customerId || '-'}</td>
+            </tr>
+            <tr>
+              <td class="label">Contact Number</td>
+              <td class="value">${data.customerPhone || '-'}</td>
+              <td class="label">Email</td>
+              <td class="value">${data.customerEmail || '-'}</td>
+            </tr>
+            ${data.customerIdType ? `
+            <tr>
+              <td class="label">${data.customerIdType}</td>
+              <td class="value" colspan="3">${data.customerIdNumber || '-'}</td>
+            </tr>
+            ` : ''}
+          </table>
+        </div>
+
+        ${data.vehicleMakeModel ? `
+        <div class="section">
+          <div class="section-title">Vehicle Details</div>
+          <table class="details-table">
+            <tr>
+              <td class="label">Vehicle</td>
+              <td class="value">${data.vehicleMakeModel}</td>
+              <td class="label">Model Year</td>
+              <td class="value">${data.modelYear || '-'}</td>
+            </tr>
+            <tr>
+              <td class="label">Chassis No.</td>
+              <td class="value">${data.chassisNo || '-'}</td>
+              <td class="label">Colour</td>
+              <td class="value">${data.vehicleColour || '-'}</td>
+            </tr>
           </table>
         </div>
         ` : ''}
 
-        ${data.unallocatedAmount > 0 ? `
-        <div class="section">
-          <div class="info-row" style="background: #fff3cd; padding: 12px; border-radius: 6px; border: none;">
-            <span class="info-label">Unallocated Balance</span>
-            <span class="info-value" style="color: #856404;">${formatCurrency(data.unallocatedAmount)}</span>
-          </div>
+        <div class="amount-box">
+          <div class="amount-label">Amount Received</div>
+          <div class="amount-value">${formatCurrency(data.amount)}</div>
+          <div class="payment-method-badge">${getPaymentMethodLabel(data.paymentMethod)}</div>
         </div>
-        ` : ''}
+
+        <div class="thank-you">
+          <div class="thank-you-text">Thank you for your payment</div>
+          <div class="thank-you-sub">This receipt confirms your payment has been received</div>
+        </div>
 
         <div class="signature-section">
           <div class="signature-box">
@@ -420,37 +474,48 @@ export async function POST(request: NextRequest) {
       .eq('id', payment.lead_id)
       .single();
 
-    // Fetch allocations
-    const { data: allocations } = await supabase
+    // Fetch sales order to get vehicle and customer details
+    const { data: salesOrder } = await supabase
+      .from('uv_sales_orders')
+      .select('*')
+      .eq('lead_id', payment.lead_id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
+    // Fetch first allocation to get invoice number
+    const { data: firstAllocation } = await supabase
       .from('uv_payment_allocations')
       .select(`
-        id,
-        amount,
         invoice_id,
         uv_invoices!inner(invoice_number)
       `)
-      .eq('payment_id', paymentId);
+      .eq('payment_id', paymentId)
+      .limit(1)
+      .single();
 
-    const formattedAllocations = allocations?.map((a: any) => ({
-      invoice_number: a.uv_invoices?.invoice_number,
-      amount: a.amount
-    })) || [];
+    const invoiceNumber = (firstAllocation as any)?.uv_invoices?.invoice_number || null;
 
-    const allocatedAmount = formattedAllocations.reduce((sum: number, a: any) => sum + a.amount, 0);
-    const unallocatedAmount = payment.amount - allocatedAmount;
-
-    // Prepare data for template
+    // Prepare data for template - prefer sales order data, fallback to lead data
     const templateData = {
       paymentNumber: payment.payment_number,
       paymentDate: payment.payment_date,
       paymentMethod: payment.payment_method,
       reference: payment.reference,
       amount: payment.amount,
-      customerName: lead?.full_name || 'Customer',
+      invoiceNumber,
+      // Customer details from sales order or lead
+      customerName: salesOrder?.customer_name || lead?.full_name || 'Customer',
       customerId: lead?.customer_number,
-      customerPhone: lead?.phone_number,
-      allocations: formattedAllocations,
-      unallocatedAmount
+      customerPhone: salesOrder?.customer_phone || lead?.phone_number,
+      customerEmail: salesOrder?.customer_email || lead?.email,
+      customerIdType: salesOrder?.customer_id_type,
+      customerIdNumber: salesOrder?.customer_id_number,
+      // Vehicle details from sales order
+      vehicleMakeModel: salesOrder?.vehicle_make_model,
+      modelYear: salesOrder?.model_year,
+      chassisNo: salesOrder?.chassis_no,
+      vehicleColour: salesOrder?.vehicle_colour,
     };
 
     // Generate HTML

@@ -2348,28 +2348,28 @@ export default function SalesOrderModal({
                             {/* Condensed Header - Always Visible */}
                             <button
                               onClick={() => setExpandedInvoiceId(isExpanded ? null : invoice.id)}
-                              className="w-full flex items-center justify-between px-4 py-3 bg-white/[0.02] hover:bg-white/[0.04] transition-colors text-left"
+                              className="w-full flex items-center justify-between px-4 py-4 bg-white/[0.02] hover:bg-white/[0.04] transition-colors text-left"
                             >
                               <div className="flex items-center gap-4">
                                 <ChevronDown className={`w-4 h-4 text-white/30 transition-transform ${isExpanded ? '' : '-rotate-90'}`} />
                                 <div>
-                                  <p className="text-sm font-medium text-white">{invoice.invoice_number}</p>
+                                  <p className="text-base font-medium text-white">{invoice.invoice_number}</p>
                                   <p className="text-xs text-white/40">
-                                    {new Date(invoice.invoice_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })}
+                                    {new Date(invoice.invoice_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
                                   </p>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-4">
+                              <div className="flex items-center gap-6">
                                 <div className="text-right">
-                                  <p className="text-sm font-semibold text-white">{formatCurrency(invoice.total_amount)}</p>
+                                  <p className="text-base font-semibold text-white">{formatCurrency(invoice.total_amount)}</p>
                                   {!isPaid && !isReversed && invoice.balance_due > 0 && (
                                     <p className="text-xs text-amber-400">{formatCurrency(invoice.balance_due)} due</p>
                                   )}
-                                  {isPaid && <p className="text-xs text-white/40">Paid</p>}
+                                  {isPaid && <p className="text-xs text-green-400 font-medium">Paid ✓</p>}
                                   {isReversed && <p className="text-xs text-white/30">Reversed</p>}
                                 </div>
-                                <div className={`w-2 h-2 rounded-full ${
-                                  isPaid ? 'bg-white/40' :
+                                <div className={`w-2.5 h-2.5 rounded-full ${
+                                  isPaid ? 'bg-green-400' :
                                   isReversed ? 'bg-white/20' :
                                   invoice.status === 'partial' ? 'bg-amber-400' :
                                   'bg-amber-400'
@@ -2397,9 +2397,9 @@ export default function SalesOrderModal({
                                     <span className="text-white/60">{formatCurrency(invoice.paid_amount)}</span>
                                   </div>
                                   <div className="flex justify-between pt-1.5 border-t border-white/5">
-                                    <span className="text-white/60 font-medium">Balance</span>
-                                    <span className={`font-semibold ${invoice.balance_due > 0 ? 'text-amber-400' : 'text-white/40'}`}>
-                                      {formatCurrency(invoice.balance_due)}
+                                    <span className={`font-medium ${invoice.balance_due === 0 ? 'text-green-400' : 'text-white/60'}`}>Balance</span>
+                                    <span className={`font-semibold ${invoice.balance_due > 0 ? 'text-amber-400' : 'text-green-400'}`}>
+                                      {invoice.balance_due === 0 ? 'Paid ✓' : formatCurrency(invoice.balance_due)}
                                     </span>
                                   </div>
                                 </div>

@@ -3131,21 +3131,23 @@ export default function SalesOrderModal({
                 </button>
               )}
               
-              {/* Create/Update/Regenerate Sales Order - Show when not locked and not fully signed */}
-              {activeTab === 'sales_order' && !isLocked && signingStatus !== 'completed' && (
+              {/* Create/Update/Regenerate Sales Order - Show when not locked */}
+              {activeTab === 'sales_order' && !isLocked && (
                 <button
                   onClick={handleSave}
                   disabled={saving || !canSave || saveSuccess}
                   className={`px-4 py-2 text-sm font-medium rounded-lg transition-all shadow-sm flex items-center gap-2 disabled:cursor-not-allowed ${
                     saveSuccess 
                       ? 'bg-green-500 text-white' 
-                      : 'text-black bg-gradient-to-r from-gray-200 via-white to-gray-200 hover:from-gray-100 hover:via-gray-50 hover:to-gray-100 disabled:opacity-50'
+                      : signingStatus === 'completed'
+                        ? 'text-white bg-white/10 hover:bg-white/20 border border-white/20'
+                        : 'text-black bg-gradient-to-r from-gray-200 via-white to-gray-200 hover:from-gray-100 hover:via-gray-50 hover:to-gray-100 disabled:opacity-50'
                   }`}
                 >
                   {saving ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      {signingStatus !== 'pending' && existingSalesOrder ? 'Regenerating...' : existingSalesOrder ? 'Generating...' : 'Creating...'}
+                      {existingSalesOrder ? 'Regenerating...' : 'Creating...'}
                     </>
                   ) : saveSuccess ? (
                     <>
@@ -3159,9 +3161,11 @@ export default function SalesOrderModal({
                       <Save className="w-4 h-4" />
                       {!existingSalesOrder 
                         ? 'Create Sales Order' 
-                        : signingStatus !== 'pending' 
-                          ? 'Regenerate Sales Order' 
-                          : 'Update Sales Order'}
+                        : signingStatus === 'completed'
+                          ? 'Regenerate & Re-sign'
+                          : signingStatus !== 'pending' 
+                            ? 'Regenerate Sales Order' 
+                            : 'Update Sales Order'}
                     </>
                   )}
                 </button>
@@ -3170,14 +3174,14 @@ export default function SalesOrderModal({
           </div>
           
           {/* Validation warnings */}
-          {activeTab === 'sales_order' && !isLocked && signingStatus !== 'completed' && missingFields.length > 0 && (
+          {activeTab === 'sales_order' && !isLocked && missingFields.length > 0 && (
             <p className="text-[10px] text-yellow-400/70 mt-2 text-right">
               ⚠️ Required: {missingFields.slice(0, 3).join(', ')}{missingFields.length > 3 ? ` +${missingFields.length - 3} more` : ''}
             </p>
           )}
           
           {/* Helper text for missing email when PDF exists */}
-          {activeTab === 'sales_order' && existingSalesOrder && pdfUrl && signingStatus === 'pending' && !formData.customerEmail && missingFields.length === 0 && (
+          {activeTab === 'sales_order' && existingSalesOrder && pdfUrl && (signingStatus === 'pending' || (signingStatus === 'completed' && !isLocked)) && !formData.customerEmail && missingFields.length === 0 && (
             <p className="text-[10px] text-yellow-400/70 mt-2 text-right">
               💡 Add customer email to enable "Send for Signing"
             </p>

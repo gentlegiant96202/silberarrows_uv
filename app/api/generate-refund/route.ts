@@ -262,6 +262,7 @@ function generateRefundHTML(data: any, logoSrc: string) {
         </div>
 
         <div class="section">
+          <div class="section-title">Refund Details</div>
           <div class="info-grid">
             <div>
               <div class="info-row">
@@ -282,6 +283,12 @@ function generateRefundHTML(data: any, logoSrc: string) {
                 <span class="info-value">${data.refundReference}</span>
               </div>
               ` : ''}
+              ${data.invoiceNumber ? `
+              <div class="info-row">
+                <span class="info-label">Related Invoice</span>
+                <span class="info-value">${data.invoiceNumber}</span>
+              </div>
+              ` : ''}
             </div>
             <div>
               <div class="info-row">
@@ -292,21 +299,45 @@ function generateRefundHTML(data: any, logoSrc: string) {
                 <span class="info-label">Customer ID</span>
                 <span class="info-value">${data.customerId || '-'}</span>
               </div>
-              ${data.customerPhone ? `
               <div class="info-row">
                 <span class="info-label">Contact</span>
-                <span class="info-value">${data.customerPhone}</span>
+                <span class="info-value">${data.customerPhone || '-'}</span>
               </div>
-              ` : ''}
-              ${data.invoiceNumber ? `
               <div class="info-row">
-                <span class="info-label">Related Invoice</span>
-                <span class="info-value">${data.invoiceNumber}</span>
+                <span class="info-label">Email</span>
+                <span class="info-value">${data.customerEmail || '-'}</span>
               </div>
-              ` : ''}
             </div>
           </div>
         </div>
+
+        ${data.vehicleMakeModel ? `
+        <div class="section">
+          <div class="section-title">Vehicle Details</div>
+          <div class="info-grid">
+            <div>
+              <div class="info-row">
+                <span class="info-label">Vehicle</span>
+                <span class="info-value">${data.vehicleMakeModel}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Model Year</span>
+                <span class="info-value">${data.modelYear || '-'}</span>
+              </div>
+            </div>
+            <div>
+              <div class="info-row">
+                <span class="info-label">Chassis No.</span>
+                <span class="info-value">${data.chassisNo || '-'}</span>
+              </div>
+              <div class="info-row">
+                <span class="info-label">Colour</span>
+                <span class="info-value">${data.vehicleColour || '-'}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        ` : ''}
 
         <div class="amount-box">
           <div class="amount-label">Refund Amount</div>
@@ -411,6 +442,15 @@ export async function POST(request: NextRequest) {
       .eq('id', adjustment.lead_id)
       .single();
 
+    // Fetch sales order to get vehicle and customer details
+    const { data: salesOrder } = await supabase
+      .from('uv_sales_orders')
+      .select('*')
+      .eq('lead_id', adjustment.lead_id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .single();
+
     // Fetch invoice if linked
     let invoiceNumber = null;
     if (adjustment.invoice_id) {
@@ -431,9 +471,18 @@ export async function POST(request: NextRequest) {
       refundMethod: adjustment.refund_method,
       refundReference: adjustment.refund_reference,
       invoiceNumber,
-      customerName: lead?.full_name || 'Customer',
+      // Customer details from sales order or lead
+      customerName: salesOrder?.customer_name || lead?.full_name || 'Customer',
       customerId: lead?.customer_number,
-      customerPhone: lead?.phone_number
+      customerPhone: salesOrder?.customer_phone || lead?.phone_number,
+      customerEmail: salesOrder?.customer_email || lead?.email,
+      customerIdType: salesOrder?.customer_id_type,
+      customerIdNumber: salesOrder?.customer_id_number,
+      // Vehicle details from sales order
+      vehicleMakeModel: salesOrder?.vehicle_make_model,
+      modelYear: salesOrder?.model_year,
+      chassisNo: salesOrder?.chassis_no,
+      vehicleColour: salesOrder?.vehicle_colour,
     };
 
     // Generate HTML

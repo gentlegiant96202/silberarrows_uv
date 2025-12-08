@@ -1158,11 +1158,30 @@ export default function SalesOrderModal({
       }
       
       if (paymentsData) {
+        // Also fetch pdf_url from base table (not in view)
+        const paymentIds = paymentsData.map(p => p.id);
+        let pdfUrls: Record<string, string> = {};
+        
+        if (paymentIds.length > 0) {
+          const { data: pdfData } = await supabase
+            .from('uv_payments')
+            .select('id, pdf_url')
+            .in('id', paymentIds);
+          
+          if (pdfData) {
+            pdfUrls = pdfData.reduce((acc, p) => {
+              if (p.pdf_url) acc[p.id] = p.pdf_url;
+              return acc;
+            }, {} as Record<string, string>);
+          }
+        }
+        
         setPayments(paymentsData.map(p => ({
           ...p,
           amount: parseFloat(p.total_amount) || 0,
           allocated_amount: parseFloat(p.allocated_amount) || 0,
           unallocated_amount: parseFloat(p.unallocated_amount) || 0,
+          pdf_url: pdfUrls[p.id] || undefined,
         })));
         
         // Load ALL allocations for this customer's payments (not just current SO)

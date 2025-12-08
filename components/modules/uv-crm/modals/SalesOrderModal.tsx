@@ -1773,25 +1773,25 @@ export default function SalesOrderModal({
                 const invoiceNumber = activeInvoice?.invoice_number || initialAccountingStatus?.invoiceNumber || '-';
                 
                 return (
-                  <div className="flex items-center gap-4 px-4 py-2 bg-white/5 rounded-lg border border-white/10">
-                    <div className="text-center px-2">
-                      <p className="text-[9px] text-white/40 uppercase tracking-wider">Invoice</p>
-                      <p className="text-xs font-semibold text-white">{invoiceNumber}</p>
+                  <div className="flex items-center gap-5 px-5 py-3 bg-white/5 rounded-lg border border-white/10">
+                    <div className="text-center px-3">
+                      <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">Invoice</p>
+                      <p className="text-sm font-semibold text-white">{invoiceNumber}</p>
                     </div>
-                    <div className="w-px h-8 bg-white/10" />
-                    <div className="text-center px-2">
-                      <p className="text-[9px] text-white/40 uppercase tracking-wider">Amount</p>
-                      <p className="text-xs font-semibold text-white">{totalInvoiced.toLocaleString()}</p>
+                    <div className="w-px h-10 bg-white/10" />
+                    <div className="text-center px-3">
+                      <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">Amount</p>
+                      <p className="text-sm font-semibold text-white">{totalInvoiced.toLocaleString()}</p>
                     </div>
-                    <div className="w-px h-8 bg-white/10" />
-                    <div className="text-center px-2">
-                      <p className="text-[9px] text-green-400/70 uppercase tracking-wider">Paid</p>
-                      <p className="text-xs font-semibold text-green-400">{totalPaid.toLocaleString()}</p>
+                    <div className="w-px h-10 bg-white/10" />
+                    <div className="text-center px-3">
+                      <p className="text-[10px] text-green-400/70 uppercase tracking-wider mb-0.5">Paid</p>
+                      <p className="text-sm font-semibold text-green-400">{totalPaid.toLocaleString()}</p>
                     </div>
-                    <div className="w-px h-8 bg-white/10" />
-                    <div className="text-center px-2">
-                      <p className="text-[9px] text-orange-400/70 uppercase tracking-wider">Balance</p>
-                      <p className={`text-xs font-semibold ${totalBalance > 0 ? 'text-orange-400' : totalBalance < 0 ? 'text-blue-400' : 'text-green-400'}`}>
+                    <div className="w-px h-10 bg-white/10" />
+                    <div className="text-center px-3">
+                      <p className={`text-[10px] uppercase tracking-wider mb-0.5 ${totalBalance === 0 ? 'text-green-400/70' : 'text-orange-400/70'}`}>Balance</p>
+                      <p className={`text-sm font-semibold ${totalBalance > 0 ? 'text-orange-400' : totalBalance < 0 ? 'text-blue-400' : 'text-green-400'}`}>
                         {totalBalance > 0 ? totalBalance.toLocaleString() : totalBalance < 0 ? `${Math.abs(totalBalance).toLocaleString()} CR` : 'Paid ✓'}
                       </p>
                     </div>

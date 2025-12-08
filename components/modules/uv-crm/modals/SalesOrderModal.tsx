@@ -145,6 +145,7 @@ interface Payment {
   status: 'received' | 'pending' | 'bounced' | 'cancelled';
   notes?: string;
   created_at: string;
+  pdf_url?: string;
   // Calculated fields from view
   allocated_amount?: number;
   unallocated_amount?: number;
@@ -173,6 +174,7 @@ interface Adjustment {
   refund_method?: string;
   refund_reference?: string;
   created_at: string;
+  pdf_url?: string;
 }
 
 const paymentMethods = [
@@ -330,6 +332,11 @@ export default function SalesOrderModal({
   const [showRefundForm, setShowRefundForm] = useState(false);
   const [savingAdjustment, setSavingAdjustment] = useState(false);
   
+  // PDF generation state for transactions
+  const [generatingReceiptId, setGeneratingReceiptId] = useState<string | null>(null);
+  const [generatingCreditNoteId, setGeneratingCreditNoteId] = useState<string | null>(null);
+  const [generatingRefundId, setGeneratingRefundId] = useState<string | null>(null);
+
   // Collapsible sections state
   const [expandedSections, setExpandedSections] = useState<{ payments: boolean; credits: boolean; refunds: boolean }>({
     payments: true,
@@ -1470,6 +1477,81 @@ export default function SalesOrderModal({
       alert('Error creating refund: ' + error.message);
     } finally {
       setSavingAdjustment(false);
+    }
+  };
+
+  // Generate Receipt PDF
+  const handleGenerateReceipt = async (paymentId: string) => {
+    setGeneratingReceiptId(paymentId);
+    try {
+      const response = await fetch('/api/generate-receipt', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentId })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to generate receipt');
+      }
+
+      // Reload payments to get updated PDF URL
+      await loadPayments();
+    } catch (error: any) {
+      console.error('Error generating receipt:', error);
+      alert('Error generating receipt: ' + error.message);
+    } finally {
+      setGeneratingReceiptId(null);
+    }
+  };
+
+  // Generate Credit Note PDF
+  const handleGenerateCreditNote = async (adjustmentId: string) => {
+    setGeneratingCreditNoteId(adjustmentId);
+    try {
+      const response = await fetch('/api/generate-credit-note', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adjustmentId })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to generate credit note');
+      }
+
+      // Reload adjustments to get updated PDF URL
+      await loadAdjustments();
+    } catch (error: any) {
+      console.error('Error generating credit note:', error);
+      alert('Error generating credit note: ' + error.message);
+    } finally {
+      setGeneratingCreditNoteId(null);
+    }
+  };
+
+  // Generate Refund PDF
+  const handleGenerateRefund = async (adjustmentId: string) => {
+    setGeneratingRefundId(adjustmentId);
+    try {
+      const response = await fetch('/api/generate-refund', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ adjustmentId })
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Failed to generate refund');
+      }
+
+      // Reload adjustments to get updated PDF URL
+      await loadAdjustments();
+    } catch (error: any) {
+      console.error('Error generating refund:', error);
+      alert('Error generating refund: ' + error.message);
+    } finally {
+      setGeneratingRefundId(null);
     }
   };
 
@@ -2678,9 +2760,30 @@ export default function SalesOrderModal({
                                         {new Date(payment.payment_date).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })} • {paymentMethods.find(m => m.value === payment.payment_method)?.label}
                                       </p>
                                     </div>
-                                    <div className="text-right">
-                                      <p className="text-sm font-semibold text-white">+{formatCurrency(payment.amount)}</p>
-                                      {isUnallocated && <p className="text-[10px] text-amber-400">{formatCurrency(payment.unallocated_amount || 0)} unallocated</p>}
+                                    <div className="flex items-center gap-3">
+                                      {/* Receipt PDF Actions */}
+                                      {payment.pdf_url ? (
+                                        <a
+                                          href={payment.pdf_url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="px-2 py-1 text-[10px] font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors"
+                                        >
+                                          View Receipt
+                                        </a>
+                                      ) : (
+                                        <button
+                                          onClick={() => handleGenerateReceipt(payment.id)}
+                                          disabled={generatingReceiptId === payment.id}
+                                          className="px-2 py-1 text-[10px] font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors disabled:opacity-50"
+                                        >
+                                          {generatingReceiptId === payment.id ? 'Generating...' : 'Generate Receipt'}
+                                        </button>
+                                      )}
+                                      <div className="text-right">
+                                        <p className="text-sm font-semibold text-white">+{formatCurrency(payment.amount)}</p>
+                                        {isUnallocated && <p className="text-[10px] text-amber-400">{formatCurrency(payment.unallocated_amount || 0)} unallocated</p>}
+                                      </div>
                                     </div>
                                   </div>
                                   {/* Allocations */}
@@ -2798,7 +2901,28 @@ export default function SalesOrderModal({
                                     <p className="text-sm font-medium text-white/80">{cn.adjustment_number}</p>
                                     <p className="text-xs text-white/40">{linkedInvoice ? `→ ${linkedInvoice.invoice_number}` : ''} • {cn.reason}</p>
                                   </div>
-                                  <p className="text-sm font-semibold text-white/60">-{formatCurrency(cn.amount)}</p>
+                                  <div className="flex items-center gap-3">
+                                    {/* Credit Note PDF Actions */}
+                                    {cn.pdf_url ? (
+                                      <a
+                                        href={cn.pdf_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="px-2 py-1 text-[10px] font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors"
+                                      >
+                                        View
+                                      </a>
+                                    ) : (
+                                      <button
+                                        onClick={() => handleGenerateCreditNote(cn.id)}
+                                        disabled={generatingCreditNoteId === cn.id}
+                                        className="px-2 py-1 text-[10px] font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors disabled:opacity-50"
+                                      >
+                                        {generatingCreditNoteId === cn.id ? 'Generating...' : 'Generate Credit Note'}
+                                      </button>
+                                    )}
+                                    <p className="text-sm font-semibold text-white/60">-{formatCurrency(cn.amount)}</p>
+                                  </div>
                                 </div>
                               );
                             })}
@@ -2876,7 +3000,28 @@ export default function SalesOrderModal({
                                     <p className="text-sm font-medium text-white/80">{refund.adjustment_number}</p>
                                     <p className="text-xs text-white/40">{linkedInvoice ? `→ ${linkedInvoice.invoice_number}` : ''} • {refund.reason}</p>
                                   </div>
-                                  <p className="text-sm font-semibold text-white/60">-{formatCurrency(refund.amount)}</p>
+                                  <div className="flex items-center gap-3">
+                                    {/* Refund PDF Actions */}
+                                    {refund.pdf_url ? (
+                                      <a
+                                        href={refund.pdf_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="px-2 py-1 text-[10px] font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors"
+                                      >
+                                        View
+                                      </a>
+                                    ) : (
+                                      <button
+                                        onClick={() => handleGenerateRefund(refund.id)}
+                                        disabled={generatingRefundId === refund.id}
+                                        className="px-2 py-1 text-[10px] font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors disabled:opacity-50"
+                                      >
+                                        {generatingRefundId === refund.id ? 'Generating...' : 'Generate Refund'}
+                                      </button>
+                                    )}
+                                    <p className="text-sm font-semibold text-white/60">-{formatCurrency(refund.amount)}</p>
+                                  </div>
                                 </div>
                               );
                             })}

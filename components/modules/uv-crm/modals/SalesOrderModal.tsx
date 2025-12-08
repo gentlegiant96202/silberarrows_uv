@@ -1493,7 +1493,7 @@ export default function SalesOrderModal({
   };
 
   // View and download PDF - opens in new tab and triggers download
-  const handleViewAndDownloadPdf = async (url: string, filename: string) => {
+  const openAndDownloadPdf = async (url: string, filename: string) => {
     // Open in new tab
     window.open(url, '_blank');
     
@@ -1514,76 +1514,115 @@ export default function SalesOrderModal({
     }
   };
 
-  // Generate Receipt PDF
-  const handleGenerateReceipt = async (paymentId: string) => {
-    setGeneratingReceiptId(paymentId);
+  // View Receipt - generates if needed, then opens and downloads
+  const handleViewReceipt = async (payment: Payment) => {
+    setGeneratingReceiptId(payment.id);
     try {
-      const response = await fetch('/api/generate-receipt', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ paymentId })
-      });
+      let pdfUrl = payment.pdf_url;
+      
+      // Generate if not exists
+      if (!pdfUrl) {
+        const response = await fetch('/api/generate-receipt', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paymentId: payment.id })
+        });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to generate receipt');
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to generate receipt');
+        }
+
+        const result = await response.json();
+        pdfUrl = result.pdfUrl;
+        
+        // Reload payments to update state
+        loadPayments();
       }
-
-      // Reload payments to get updated PDF URL
-      await loadPayments();
+      
+      // Open and download
+      if (pdfUrl) {
+        await openAndDownloadPdf(pdfUrl, `${payment.payment_number}.pdf`);
+      }
     } catch (error: any) {
-      console.error('Error generating receipt:', error);
-      alert('Error generating receipt: ' + error.message);
+      console.error('Error viewing receipt:', error);
+      alert('Error: ' + error.message);
     } finally {
       setGeneratingReceiptId(null);
     }
   };
 
-  // Generate Credit Note PDF
-  const handleGenerateCreditNote = async (adjustmentId: string) => {
-    setGeneratingCreditNoteId(adjustmentId);
+  // View Credit Note - generates if needed, then opens and downloads
+  const handleViewCreditNote = async (adjustment: Adjustment) => {
+    setGeneratingCreditNoteId(adjustment.id);
     try {
-      const response = await fetch('/api/generate-credit-note', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adjustmentId })
-      });
+      let pdfUrl = adjustment.pdf_url;
+      
+      // Generate if not exists
+      if (!pdfUrl) {
+        const response = await fetch('/api/generate-credit-note', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ adjustmentId: adjustment.id })
+        });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to generate credit note');
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to generate credit note');
+        }
+
+        const result = await response.json();
+        pdfUrl = result.pdfUrl;
+        
+        // Reload adjustments to update state
+        loadAdjustments();
       }
-
-      // Reload adjustments to get updated PDF URL
-      await loadAdjustments();
+      
+      // Open and download
+      if (pdfUrl) {
+        await openAndDownloadPdf(pdfUrl, `${adjustment.adjustment_number}.pdf`);
+      }
     } catch (error: any) {
-      console.error('Error generating credit note:', error);
-      alert('Error generating credit note: ' + error.message);
+      console.error('Error viewing credit note:', error);
+      alert('Error: ' + error.message);
     } finally {
       setGeneratingCreditNoteId(null);
     }
   };
 
-  // Generate Refund PDF
-  const handleGenerateRefund = async (adjustmentId: string) => {
-    setGeneratingRefundId(adjustmentId);
+  // View Refund - generates if needed, then opens and downloads
+  const handleViewRefund = async (adjustment: Adjustment) => {
+    setGeneratingRefundId(adjustment.id);
     try {
-      const response = await fetch('/api/generate-refund', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ adjustmentId })
-      });
+      let pdfUrl = adjustment.pdf_url;
+      
+      // Generate if not exists
+      if (!pdfUrl) {
+        const response = await fetch('/api/generate-refund', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ adjustmentId: adjustment.id })
+        });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to generate refund');
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to generate refund');
+        }
+
+        const result = await response.json();
+        pdfUrl = result.pdfUrl;
+        
+        // Reload adjustments to update state
+        loadAdjustments();
       }
-
-      // Reload adjustments to get updated PDF URL
-      await loadAdjustments();
+      
+      // Open and download
+      if (pdfUrl) {
+        await openAndDownloadPdf(pdfUrl, `${adjustment.adjustment_number}.pdf`);
+      }
     } catch (error: any) {
-      console.error('Error generating refund:', error);
-      alert('Error generating refund: ' + error.message);
+      console.error('Error viewing refund:', error);
+      alert('Error: ' + error.message);
     } finally {
       setGeneratingRefundId(null);
     }
@@ -2796,22 +2835,20 @@ export default function SalesOrderModal({
                                     </div>
                                     <div className="flex items-center gap-3">
                                       {/* Receipt PDF Actions */}
-                                      {payment.pdf_url ? (
-                                        <button
-                                          onClick={() => handleViewAndDownloadPdf(payment.pdf_url!, `${payment.payment_number}.pdf`)}
-                                          className="px-2 py-1 text-[10px] font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors"
-                                        >
-                                          View Receipt
-                                        </button>
-                                      ) : (
-                                        <button
-                                          onClick={() => handleGenerateReceipt(payment.id)}
-                                          disabled={generatingReceiptId === payment.id}
-                                          className="px-2 py-1 text-[10px] font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors disabled:opacity-50"
-                                        >
-                                          {generatingReceiptId === payment.id ? 'Generating...' : 'Generate Receipt'}
-                                        </button>
-                                      )}
+                                      <button
+                                        onClick={() => handleViewReceipt(payment)}
+                                        disabled={generatingReceiptId === payment.id}
+                                        className="px-2 py-1 text-[10px] font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors disabled:opacity-50 flex items-center gap-1"
+                                      >
+                                        {generatingReceiptId === payment.id ? (
+                                          <>
+                                            <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
+                                            Loading...
+                                          </>
+                                        ) : (
+                                          'View Receipt'
+                                        )}
+                                      </button>
                                       <div className="text-right">
                                         <p className="text-sm font-semibold text-white">+{formatCurrency(payment.amount)}</p>
                                         {isUnallocated && <p className="text-[10px] text-amber-400">{formatCurrency(payment.unallocated_amount || 0)} unallocated</p>}
@@ -2935,22 +2972,20 @@ export default function SalesOrderModal({
                                   </div>
                                   <div className="flex items-center gap-3">
                                     {/* Credit Note PDF Actions */}
-                                    {cn.pdf_url ? (
-                                      <button
-                                        onClick={() => handleViewAndDownloadPdf(cn.pdf_url!, `${cn.adjustment_number}.pdf`)}
-                                        className="px-2 py-1 text-[10px] font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors"
-                                      >
-                                        View
-                                      </button>
-                                    ) : (
-                                      <button
-                                        onClick={() => handleGenerateCreditNote(cn.id)}
-                                        disabled={generatingCreditNoteId === cn.id}
-                                        className="px-2 py-1 text-[10px] font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors disabled:opacity-50"
-                                      >
-                                        {generatingCreditNoteId === cn.id ? 'Generating...' : 'Generate Credit Note'}
-                                      </button>
-                                    )}
+                                    <button
+                                      onClick={() => handleViewCreditNote(cn)}
+                                      disabled={generatingCreditNoteId === cn.id}
+                                      className="px-2 py-1 text-[10px] font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors disabled:opacity-50 flex items-center gap-1"
+                                    >
+                                      {generatingCreditNoteId === cn.id ? (
+                                        <>
+                                          <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
+                                          Loading...
+                                        </>
+                                      ) : (
+                                        'View'
+                                      )}
+                                    </button>
                                     <p className="text-sm font-semibold text-white/60">-{formatCurrency(cn.amount)}</p>
                                   </div>
                                 </div>
@@ -3032,22 +3067,20 @@ export default function SalesOrderModal({
                                   </div>
                                   <div className="flex items-center gap-3">
                                     {/* Refund PDF Actions */}
-                                    {refund.pdf_url ? (
-                                      <button
-                                        onClick={() => handleViewAndDownloadPdf(refund.pdf_url!, `${refund.adjustment_number}.pdf`)}
-                                        className="px-2 py-1 text-[10px] font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors"
-                                      >
-                                        View
-                                      </button>
-                                    ) : (
-                                      <button
-                                        onClick={() => handleGenerateRefund(refund.id)}
-                                        disabled={generatingRefundId === refund.id}
-                                        className="px-2 py-1 text-[10px] font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors disabled:opacity-50"
-                                      >
-                                        {generatingRefundId === refund.id ? 'Generating...' : 'Generate Refund'}
-                                      </button>
-                                    )}
+                                    <button
+                                      onClick={() => handleViewRefund(refund)}
+                                      disabled={generatingRefundId === refund.id}
+                                      className="px-2 py-1 text-[10px] font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors disabled:opacity-50 flex items-center gap-1"
+                                    >
+                                      {generatingRefundId === refund.id ? (
+                                        <>
+                                          <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
+                                          Loading...
+                                        </>
+                                      ) : (
+                                        'View'
+                                      )}
+                                    </button>
                                     <p className="text-sm font-semibold text-white/60">-{formatCurrency(refund.amount)}</p>
                                   </div>
                                 </div>

@@ -1747,62 +1747,55 @@ export default function SalesOrderModal({
               </div>
             </div>
             
-            {/* Right: Invoice Status Strip + Close Button */}
-            <div className="flex items-start gap-4">
-              {/* Quick Status Strip - Show invoice-level data */}
-              {(() => {
-                // Use loaded invoice data if available, otherwise use initial status from hook
-                const hasInvoiceData = invoices.length > 0;
-                const hasInitialStatus = initialAccountingStatus?.invoiceNumber;
-                
-                if (!hasInvoiceData && !hasInitialStatus) return null;
-                
-                const activeInvoice = invoices.find(inv => inv.status !== 'reversed') || invoices[0];
-                
-                // Use invoice-level data (now includes refund_total in balance_due calculation)
-                const totalInvoiced = hasInvoiceData 
-                  ? invoices.filter(i => i.status !== 'reversed').reduce((sum, i) => sum + i.total_amount, 0)
-                  : (initialAccountingStatus?.totalAmount || 0);
-                const totalPaid = hasInvoiceData 
-                  ? invoices.filter(i => i.status !== 'reversed').reduce((sum, i) => sum + (i.paid_amount || 0), 0)
-                  : (initialAccountingStatus?.paidAmount || 0);
-                // Invoice balance_due now includes: total - credit_notes - paid + refunds
-                const totalBalance = hasInvoiceData 
-                  ? invoices.filter(i => i.status !== 'reversed').reduce((sum, i) => sum + (i.balance_due || 0), 0)
-                  : (initialAccountingStatus?.balanceDue || 0);
-                const invoiceNumber = activeInvoice?.invoice_number || initialAccountingStatus?.invoiceNumber || '-';
-                
-                return (
-                  <div className="flex items-center gap-5 px-5 py-3 bg-white/5 rounded-lg border border-white/10">
-                    <div className="text-center px-3">
-                      <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">Invoice</p>
-                      <p className="text-sm font-semibold text-white">{invoiceNumber}</p>
-                    </div>
-                    <div className="w-px h-10 bg-white/10" />
-                    <div className="text-center px-3">
-                      <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">Amount</p>
-                      <p className="text-sm font-semibold text-white">{totalInvoiced.toLocaleString()}</p>
-                    </div>
-                    <div className="w-px h-10 bg-white/10" />
-                    <div className="text-center px-3">
-                      <p className="text-[10px] text-green-400/70 uppercase tracking-wider mb-0.5">Paid</p>
-                      <p className="text-sm font-semibold text-green-400">{totalPaid.toLocaleString()}</p>
-                    </div>
-                    <div className="w-px h-10 bg-white/10" />
-                    <div className="text-center px-3">
-                      <p className={`text-[10px] uppercase tracking-wider mb-0.5 ${totalBalance === 0 ? 'text-green-400/70' : 'text-orange-400/70'}`}>Balance</p>
-                      <p className={`text-sm font-semibold ${totalBalance > 0 ? 'text-orange-400' : totalBalance < 0 ? 'text-blue-400' : 'text-green-400'}`}>
-                        {totalBalance > 0 ? totalBalance.toLocaleString() : totalBalance < 0 ? `${Math.abs(totalBalance).toLocaleString()} CR` : 'Paid ✓'}
-                      </p>
-                    </div>
-                  </div>
-                );
-              })()}
+            {/* Right: Invoice Status Strip */}
+            {(() => {
+              // Use loaded invoice data if available, otherwise use initial status from hook
+              const hasInvoiceData = invoices.length > 0;
+              const hasInitialStatus = initialAccountingStatus?.invoiceNumber;
               
-              <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-                <X className="w-5 h-5 text-white/70" />
-              </button>
-            </div>
+              if (!hasInvoiceData && !hasInitialStatus) return null;
+              
+              const activeInvoice = invoices.find(inv => inv.status !== 'reversed') || invoices[0];
+              
+              // Use invoice-level data (now includes refund_total in balance_due calculation)
+              const totalInvoiced = hasInvoiceData 
+                ? invoices.filter(i => i.status !== 'reversed').reduce((sum, i) => sum + i.total_amount, 0)
+                : (initialAccountingStatus?.totalAmount || 0);
+              const totalPaid = hasInvoiceData 
+                ? invoices.filter(i => i.status !== 'reversed').reduce((sum, i) => sum + (i.paid_amount || 0), 0)
+                : (initialAccountingStatus?.paidAmount || 0);
+              // Invoice balance_due now includes: total - credit_notes - paid + refunds
+              const totalBalance = hasInvoiceData 
+                ? invoices.filter(i => i.status !== 'reversed').reduce((sum, i) => sum + (i.balance_due || 0), 0)
+                : (initialAccountingStatus?.balanceDue || 0);
+              const invoiceNumber = activeInvoice?.invoice_number || initialAccountingStatus?.invoiceNumber || '-';
+              
+              return (
+                <div className="flex items-center gap-5 px-5 py-3 bg-white/5 rounded-lg border border-white/10">
+                  <div className="text-center px-3">
+                    <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">Invoice</p>
+                    <p className="text-sm font-semibold text-white">{invoiceNumber}</p>
+                  </div>
+                  <div className="w-px h-10 bg-white/10" />
+                  <div className="text-center px-3">
+                    <p className="text-[10px] text-white/40 uppercase tracking-wider mb-0.5">Amount</p>
+                    <p className="text-sm font-semibold text-white">{totalInvoiced.toLocaleString()}</p>
+                  </div>
+                  <div className="w-px h-10 bg-white/10" />
+                  <div className="text-center px-3">
+                    <p className="text-[10px] text-green-400/70 uppercase tracking-wider mb-0.5">Paid</p>
+                    <p className="text-sm font-semibold text-green-400">{totalPaid.toLocaleString()}</p>
+                  </div>
+                  <div className="w-px h-10 bg-white/10" />
+                  <div className="text-center px-3">
+                    <p className={`text-[10px] uppercase tracking-wider mb-0.5 ${totalBalance === 0 ? 'text-green-400/70' : 'text-orange-400/70'}`}>Balance</p>
+                    <p className={`text-sm font-semibold ${totalBalance > 0 ? 'text-orange-400' : totalBalance < 0 ? 'text-blue-400' : 'text-green-400'}`}>
+                      {totalBalance > 0 ? totalBalance.toLocaleString() : totalBalance < 0 ? `${Math.abs(totalBalance).toLocaleString()} CR` : 'Paid ✓'}
+                    </p>
+                  </div>
+                </div>
+              );
+            })()}
           </div>
         </div>
 

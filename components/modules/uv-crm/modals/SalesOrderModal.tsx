@@ -953,9 +953,6 @@ export default function SalesOrderModal({
     
     setConvertingToInvoice(true);
     try {
-      // First, save any pending changes to the sales order
-      await handleSave();
-      
       // Call the database function to convert SO to Invoice
       const { data, error } = await supabase
         .rpc('convert_so_to_invoice', {

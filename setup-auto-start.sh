@@ -18,3 +18,4 @@ echo "🔄 The server will now automatically start when your Mac boots up"
 echo ""
 
 
+

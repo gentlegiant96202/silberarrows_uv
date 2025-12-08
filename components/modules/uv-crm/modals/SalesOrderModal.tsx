@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/components/shared/AuthProvider';
-import { X, FileText, ArrowRightLeft, CreditCard, ClipboardList, ChevronDown, ChevronUp, Save, Loader2, Plus, Trash2, ScrollText } from 'lucide-react';
+import { X, FileText, ArrowRightLeft, CreditCard, ClipboardList, ChevronDown, ChevronUp, Save, Loader2, Plus, Trash2, ScrollText, ExternalLink } from 'lucide-react';
 
 // ===== INTERFACES =====
 interface Lead {
@@ -2411,31 +2411,98 @@ export default function SalesOrderModal({
                                   </div>
                                 )}
 
-                                {/* Signing Status */}
-                                {invoice.signing_status && invoice.signing_status !== 'pending' && (
-                                  <div className={`p-2 rounded-lg border ${
+                                {/* Document Section - Only show when paid and not reversed */}
+                                {isPaid && !isReversed && (
+                                  <div className={`p-3 rounded-lg border ${
                                     invoice.signing_status === 'completed'
                                       ? 'bg-green-500/10 border-green-400/20'
                                       : invoice.signing_status === 'company_signed'
                                       ? 'bg-orange-500/10 border-orange-400/20'
-                                      : 'bg-blue-500/10 border-blue-400/20'
+                                      : invoice.signing_status === 'sent' || invoice.signing_status === 'delivered'
+                                      ? 'bg-blue-500/10 border-blue-400/20'
+                                      : 'bg-white/[0.02] border-white/10'
                                   }`}>
-                                    <div className="flex items-center gap-2">
-                                      <div className={`w-2 h-2 rounded-full ${
-                                        invoice.signing_status === 'completed' ? 'bg-green-400' :
-                                        invoice.signing_status === 'company_signed' ? 'bg-orange-400 animate-pulse' :
-                                        'bg-blue-400 animate-pulse'
-                                      }`} />
-                                      <span className={`text-xs font-medium ${
-                                        invoice.signing_status === 'completed' ? 'text-green-400' :
-                                        invoice.signing_status === 'company_signed' ? 'text-orange-400' :
-                                        'text-blue-400'
-                                      }`}>
-                                        {invoice.signing_status === 'completed' ? '✓ Invoice Signed' :
-                                         invoice.signing_status === 'company_signed' ? 'Awaiting Customer Signature' :
-                                         'Sent for Signing'}
-                                      </span>
+                                    <div className="flex items-center justify-between">
+                                      {/* Status */}
+                                      <div className="flex items-center gap-2">
+                                        <div className={`w-2 h-2 rounded-full ${
+                                          invoice.signing_status === 'completed' ? 'bg-green-400' :
+                                          invoice.signing_status === 'company_signed' ? 'bg-orange-400 animate-pulse' :
+                                          invoice.signing_status === 'sent' || invoice.signing_status === 'delivered' ? 'bg-blue-400 animate-pulse' :
+                                          invoice.pdf_url ? 'bg-white/40' : 'bg-white/20'
+                                        }`} />
+                                        <span className={`text-xs font-medium ${
+                                          invoice.signing_status === 'completed' ? 'text-green-400' :
+                                          invoice.signing_status === 'company_signed' ? 'text-orange-400' :
+                                          invoice.signing_status === 'sent' || invoice.signing_status === 'delivered' ? 'text-blue-400' :
+                                          'text-white/60'
+                                        }`}>
+                                          {invoice.signing_status === 'completed' ? '✓ Invoice Signed' :
+                                           invoice.signing_status === 'company_signed' ? 'Awaiting Customer Signature' :
+                                           invoice.signing_status === 'sent' || invoice.signing_status === 'delivered' ? 'Sent for Signing' :
+                                           invoice.pdf_url ? 'Invoice Generated' : 'No Invoice Generated'}
+                                        </span>
+                                        {invoice.docusign_envelope_id && invoice.signing_status !== 'completed' && invoice.signing_status !== 'pending' && (
+                                          <span className="text-[10px] text-white/30 font-mono">
+                                            {invoice.docusign_envelope_id.slice(0, 8)}...
+                                          </span>
+                                        )}
+                                      </div>
+
+                                      {/* Actions */}
+                                      <div className="flex items-center gap-2">
+                                        {/* View PDF */}
+                                        {invoice.pdf_url && (
+                                          <button
+                                            onClick={(e) => { e.stopPropagation(); window.open(invoice.signed_pdf_url || invoice.pdf_url, '_blank'); }}
+                                            className="px-2.5 py-1 text-xs font-medium text-white/70 hover:text-white bg-white/10 hover:bg-white/20 rounded transition-colors flex items-center gap-1"
+                                          >
+                                            <ExternalLink className="w-3 h-3" />
+                                            {invoice.signed_pdf_url ? 'View Signed' : 'View PDF'}
+                                          </button>
+                                        )}
+
+                                        {/* Generate Invoice - only when no PDF exists */}
+                                        {!invoice.pdf_url && (
+                                          <button
+                                            onClick={(e) => { e.stopPropagation(); handleGenerateInvoicePdf(invoice.id); }}
+                                            disabled={generatingInvoicePdf === invoice.id}
+                                            className="px-2.5 py-1 text-xs font-medium text-white bg-white/10 hover:bg-white/20 rounded transition-colors disabled:opacity-50"
+                                          >
+                                            {generatingInvoicePdf === invoice.id ? 'Generating...' : 'Generate Invoice'}
+                                          </button>
+                                        )}
+
+                                        {/* Regenerate Invoice - when PDF exists but not sent for signing */}
+                                        {invoice.pdf_url && (!invoice.signing_status || invoice.signing_status === 'pending') && (
+                                          <button
+                                            onClick={(e) => { e.stopPropagation(); handleGenerateInvoicePdf(invoice.id); }}
+                                            disabled={generatingInvoicePdf === invoice.id}
+                                            className="px-2.5 py-1 text-xs font-medium text-white/50 hover:text-white/70 bg-white/5 hover:bg-white/10 rounded transition-colors disabled:opacity-50"
+                                          >
+                                            {generatingInvoicePdf === invoice.id ? 'Regenerating...' : 'Regenerate'}
+                                          </button>
+                                        )}
+
+                                        {/* Send for Signing - when PDF exists and not already in signing process */}
+                                        {invoice.pdf_url && (!invoice.signing_status || invoice.signing_status === 'pending') && formData.customerEmail && (
+                                          <button
+                                            onClick={(e) => { e.stopPropagation(); handleSendInvoiceForSigning(invoice); }}
+                                            disabled={sendingInvoiceForSigning === invoice.id}
+                                            className="px-2.5 py-1 text-xs font-medium text-white bg-blue-600 hover:bg-blue-500 rounded transition-colors disabled:opacity-50"
+                                          >
+                                            {sendingInvoiceForSigning === invoice.id ? 'Sending...' : 'Send for Signing'}
+                                          </button>
+                                        )}
+                                      </div>
                                     </div>
+
+                                    {/* Helper text for missing email */}
+                                    {invoice.pdf_url && (!invoice.signing_status || invoice.signing_status === 'pending') && !formData.customerEmail && (
+                                      <p className="text-[10px] text-yellow-400/70 mt-2">
+                                        💡 Add customer email to enable "Send for Signing"
+                                      </p>
+                                    )}
                                   </div>
                                 )}
 
@@ -2443,68 +2510,22 @@ export default function SalesOrderModal({
                                 {!isPaid && !isReversed && (
                                   <div className="p-2 bg-amber-500/10 border border-amber-400/20 rounded-lg">
                                     <p className="text-xs text-amber-400/80">
-                                      💡 PDF generation and signing available once fully paid
+                                      💡 Invoice generation available once fully paid
                                     </p>
                                   </div>
                                 )}
 
-                                {/* Actions */}
-                                <div className="flex items-center justify-end gap-2 pt-2 border-t border-white/5">
-                                  {/* View PDF - available anytime if PDF exists */}
-                                  {invoice.pdf_url && (
-                                    <a
-                                      href={invoice.signed_pdf_url || invoice.pdf_url}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="px-3 py-1.5 text-xs font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors"
-                                    >
-                                      {invoice.signed_pdf_url ? 'View Signed' : 'View PDF'}
-                                    </a>
-                                  )}
-                                  
-                                  {/* Generate Invoice - only when fully paid and no PDF exists */}
-                                  {isPaid && !invoice.pdf_url && !isReversed && (
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); handleGenerateInvoicePdf(invoice.id); }}
-                                      disabled={generatingInvoicePdf === invoice.id}
-                                      className="px-3 py-1.5 text-xs font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors disabled:opacity-50"
-                                    >
-                                      {generatingInvoicePdf === invoice.id ? 'Generating...' : 'Generate Invoice'}
-                                    </button>
-                                  )}
-
-                                  {/* Regenerate Invoice - only when fully paid and PDF exists but not sent for signing yet */}
-                                  {isPaid && invoice.pdf_url && !isReversed && (!invoice.signing_status || invoice.signing_status === 'pending') && (
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); handleGenerateInvoicePdf(invoice.id); }}
-                                      disabled={generatingInvoicePdf === invoice.id}
-                                      className="px-3 py-1.5 text-xs font-medium text-white/40 hover:text-white/60 bg-white/5 hover:bg-white/10 rounded transition-colors disabled:opacity-50"
-                                    >
-                                      {generatingInvoicePdf === invoice.id ? 'Regenerating...' : 'Regenerate Invoice'}
-                                    </button>
-                                  )}
-
-                                  {/* Send for Signing - only when fully paid and PDF exists and not already in signing process */}
-                                  {isPaid && invoice.pdf_url && !isReversed && (!invoice.signing_status || invoice.signing_status === 'pending') && formData.customerEmail && (
-                                    <button
-                                      onClick={(e) => { e.stopPropagation(); handleSendInvoiceForSigning(invoice); }}
-                                      disabled={sendingInvoiceForSigning === invoice.id}
-                                      className="px-3 py-1.5 text-xs font-medium text-white bg-white/10 hover:bg-white/20 rounded transition-colors disabled:opacity-50"
-                                    >
-                                      {sendingInvoiceForSigning === invoice.id ? 'Sending...' : 'Send for Signing'}
-                                    </button>
-                                  )}
-
-                                  {/* Reverse - always available unless already reversed or signed */}
-                                  {!isReversed && invoice.signing_status !== 'completed' && (
+                                {/* Reverse Action - Separate section */}
+                                {!isReversed && invoice.signing_status !== 'completed' && (
+                                  <div className="pt-2 border-t border-white/5">
                                     <button
                                       onClick={(e) => { e.stopPropagation(); handleReverseInvoice(invoice); }}
-                                      className="px-3 py-1.5 text-xs font-medium text-white/40 hover:text-red-400 bg-white/5 hover:bg-red-500/10 rounded transition-colors"
+                                      className="text-xs font-medium text-white/30 hover:text-red-400 transition-colors"
                                     >
-                                      Reverse
+                                      Reverse Invoice
                                     </button>
-                                  )}
-                                </div>
+                                  </div>
+                                )}
                               </div>
                             )}
                           </div>

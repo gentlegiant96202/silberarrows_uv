@@ -230,20 +230,14 @@ export default function SellYourCarPage() {
     return `${countryCode}${customerPhone}`;
   };
 
-  // Common country codes for UAE region
-  const countryCodes = [
-    { code: '+971', country: 'UAE' },
-    { code: '+966', country: 'KSA' },
-    { code: '+974', country: 'Qatar' },
-    { code: '+973', country: 'Bahrain' },
-    { code: '+968', country: 'Oman' },
-    { code: '+965', country: 'Kuwait' },
-    { code: '+91', country: 'India' },
-    { code: '+92', country: 'Pakistan' },
-    { code: '+63', country: 'Philippines' },
-    { code: '+44', country: 'UK' },
-    { code: '+1', country: 'USA' },
-  ];
+  const formatCountryCode = (value: string) => {
+    // Ensure it starts with + and only contains numbers after
+    let formatted = value.replace(/[^\d+]/g, '');
+    if (!formatted.startsWith('+')) {
+      formatted = '+' + formatted.replace(/\+/g, '');
+    }
+    return formatted.slice(0, 5);
+  };
 
   const generateYears = () => {
     const years = [];
@@ -432,18 +426,12 @@ export default function SellYourCarPage() {
                     <div className="form-group">
                       <Label className="form-label">WhatsApp Number</Label>
                       <div className="phone-input-group">
-                        <Select value={countryCode} onValueChange={setCountryCode}>
-                          <SelectTrigger className="country-code-select">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent className="select-content">
-                            {countryCodes.map(({ code, country }) => (
-                              <SelectItem key={code} value={code} className="select-item">
-                                {code} {country}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <Input
+                          type="tel"
+                          value={countryCode}
+                          onChange={(e) => setCountryCode(formatCountryCode(e.target.value))}
+                          className="form-input country-code-input"
+                        />
                         <Input
                           type="tel"
                           value={customerPhone}

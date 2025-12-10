@@ -60,7 +60,6 @@ export default function SellYourCarPage() {
   const [models, setModels] = useState<string[]>([]);
   const [trims, setTrims] = useState<string[]>([]);
   const [yearRange, setYearRange] = useState({ min_year: 2016, max_year: 2025 });
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const [selectedModel, setSelectedModel] = useState('');
   const [selectedTrim, setSelectedTrim] = useState('');
@@ -276,63 +275,19 @@ export default function SellYourCarPage() {
               </div>
             </div>
             
-            {/* Mobile Actions */}
-            <div className="mobile-header-actions">
-              <a 
-                href="#calculator" 
-                className="mobile-cta-btn"
-                onClick={(e) => {
-                  e.preventDefault();
-                  document.getElementById('calculator')?.scrollIntoView({ behavior: 'smooth' });
-                }}
-              >
-                GET OFFER
-              </a>
-              <button 
-                className="mobile-menu-toggle"
-                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                aria-label="Toggle menu"
-              >
-                <span className={`hamburger ${mobileMenuOpen ? 'open' : ''}`}>
-                  <span></span>
-                  <span></span>
-                  <span></span>
-                </span>
-              </button>
-            </div>
+            {/* Mobile CTA */}
+            <a 
+              href="#calculator" 
+              className="mobile-cta-btn"
+              onClick={(e) => {
+                e.preventDefault();
+                document.getElementById('calculator')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
+              GET OFFER
+            </a>
           </div>
         </header>
-
-        {/* Mobile Menu Overlay */}
-        {mobileMenuOpen && (
-          <div className="mobile-menu-overlay" onClick={() => setMobileMenuOpen(false)}>
-            <div className="mobile-menu" onClick={(e) => e.stopPropagation()}>
-              <button 
-                className="mobile-menu-close"
-                onClick={() => setMobileMenuOpen(false)}
-                aria-label="Close menu"
-              >
-                <Icon name="times" size={24} variant="gold" />
-              </button>
-              
-              <nav className="mobile-nav">
-                <a href="#calculator" onClick={() => setMobileMenuOpen(false)}>GET OFFER</a>
-                <a href="#why-us" onClick={() => setMobileMenuOpen(false)}>WHY US</a>
-                <a href="#contact" onClick={() => setMobileMenuOpen(false)}>CONTACT</a>
-              </nav>
-              <div className="mobile-menu-contact">
-                <div className="mobile-contact-item">
-                  <Icon name="phone" size={16} variant="gold" />
-                  <a href="tel:+971507779163">+971 50 777 9163</a>
-                </div>
-                <div className="mobile-contact-item">
-                  <Icon name="whatsapp" size={16} variant="gold" />
-                  <a href="https://wa.me/97143805515">WhatsApp</a>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
       {/* Main Content */}

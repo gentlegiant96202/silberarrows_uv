@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabaseAdmin';
 
+const WEBHOOK_URL = 'https://bothook.io/v1/public/triggers/webhooks/19140ecb-caa5-4282-acf2-0a9c95026555';
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -28,6 +30,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const parsedYear = parseInt(year);
+    const parsedMileage = parseInt(String(mileage).replace(/,/g, ''));
+
     // Insert into Supabase
     const { data, error } = await supabaseAdmin
       .from('sell_car_leads')
@@ -36,8 +41,8 @@ export async function POST(request: NextRequest) {
         phone,
         model,
         trim: trim || null,
-        year: parseInt(year),
-        mileage: parseInt(String(mileage).replace(/,/g, '')),
+        year: parsedYear,
+        mileage: parsedMileage,
         offer_price: offer_price || null,
         market_value: market_value || null,
         confidence: confidence || null,
@@ -54,10 +59,31 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Supabase error:', error);
       return NextResponse.json(
-        { error: 'Failed to save lead', details: error.message, code: error.code },
+        { error: 'Failed to save lead', details: error.message },
         { status: 500 }
       );
     }
+
+    // Send webhook notification (non-blocking)
+    fetch(WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        lead_id: data.id,
+        name,
+        phone,
+        model,
+        trim: trim || null,
+        year: parsedYear,
+        mileage: parsedMileage,
+        cash_offer: offer_price || null,
+        consignment_offer: consignment_price || null,
+        market_value: market_value || null,
+        confidence: confidence || null,
+        source: 'website',
+        timestamp: new Date().toISOString()
+      })
+    }).catch(err => console.error('Webhook error:', err));
 
     return NextResponse.json({ 
       success: true, 
@@ -67,7 +93,7 @@ export async function POST(request: NextRequest) {
   } catch (error: any) {
     console.error('Lead API error:', error);
     return NextResponse.json(
-      { error: 'Internal server error', details: error?.message || String(error) },
+      { error: 'Internal server error', details: error?.message },
       { status: 500 }
     );
   }

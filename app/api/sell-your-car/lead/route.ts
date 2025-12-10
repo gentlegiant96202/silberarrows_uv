@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
     if (error) {
       console.error('Supabase error:', error);
       return NextResponse.json(
-        { error: 'Failed to save lead' },
+        { error: 'Failed to save lead', details: error.message, code: error.code },
         { status: 500 }
       );
     }
@@ -64,10 +64,10 @@ export async function POST(request: NextRequest) {
       lead_id: data.id 
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Lead API error:', error);
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: 'Internal server error', details: error?.message || String(error) },
       { status: 500 }
     );
   }

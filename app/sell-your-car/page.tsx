@@ -357,39 +357,42 @@ export default function SellYourCarPage() {
         {/* Calculator Section */}
         <section className="vehicles-section" id="calculator">
           <div className="section-header">
-            <h2>{result ? "YOUR OFFERS" : "GET YOUR INSTANT OFFER"}</h2>
-            <p>{result 
-              ? `${result.input.year} Mercedes-Benz ${result.input.model} ${result.input.trim || ''} • ${formatPrice(result.input.mileage_km)} km`
-              : formStep === 1 
+            <h2>GET YOUR INSTANT OFFER</h2>
+            <p>{formStep === 1 
                 ? "Let's start with your contact details" 
-                : "Now tell us about your vehicle"
+                : result 
+                  ? "Choose your preferred option below"
+                  : "Now tell us about your vehicle"
             }</p>
           </div>
 
-          {/* Step Indicator - hide when results shown */}
-          {!result && (
-            <div className="step-indicator">
-              <div className={`step ${formStep >= 1 ? 'active' : ''} ${formStep > 1 ? 'completed' : ''}`}>
-                <div className="step-number">
-                  {formStep > 1 ? <Icon name="check" size={16} variant="dark" /> : '1'}
-                </div>
-                <span className="step-label">Your Details</span>
+          {/* Step Indicator - always visible */}
+          <div className="step-indicator">
+            <div className={`step ${formStep >= 1 ? 'active' : ''} ${formStep > 1 ? 'completed' : ''}`}>
+              <div className="step-number">
+                {formStep > 1 ? <Icon name="check" size={14} variant="dark" /> : '1'}
               </div>
-              <div className="step-line"></div>
-              <div className={`step ${formStep >= 2 ? 'active' : ''}`}>
-                <div className="step-number">2</div>
-                <span className="step-label">Vehicle Info</span>
-              </div>
+              <span className="step-label">Contact</span>
             </div>
-          )}
+            <div className={`step-line ${formStep > 1 ? 'completed' : ''}`}></div>
+            <div className={`step ${formStep >= 2 ? 'active' : ''} ${result ? 'completed' : ''}`}>
+              <div className="step-number">
+                {result ? <Icon name="check" size={14} variant="dark" /> : '2'}
+              </div>
+              <span className="step-label">Vehicle</span>
+            </div>
+            <div className={`step-line ${result ? 'completed' : ''}`}></div>
+            <div className={`step ${result ? 'active' : ''}`}>
+              <div className="step-number">3</div>
+              <span className="step-label">Offer</span>
+            </div>
+          </div>
 
-          <div className="calculator-container">
-            {/* Form Card - hide when results shown */}
-            {!result && (
-            <Card className="calculator-card">
-              <CardContent className="pt-6">
+          <div className="wizard-container">
+            <Card className="wizard-card">
+              <CardContent className="wizard-content">
                 {/* Step 1: Contact Details */}
-                {formStep === 1 && (
+                {formStep === 1 && !result && (
                   <form onSubmit={handleStep1Submit} className="calculator-form">
                     <div className="form-group">
                       <Label className="form-label">Your Name</Label>
@@ -443,7 +446,7 @@ export default function SellYourCarPage() {
                 )}
 
                 {/* Step 2: Vehicle Details */}
-                {formStep === 2 && (
+                {formStep === 2 && !result && (
                   <form onSubmit={handleSubmit} className="calculator-form">
                     {/* Back Button */}
                     <button 
@@ -452,13 +455,13 @@ export default function SellYourCarPage() {
                       onClick={() => setFormStep(1)}
                     >
                       <Icon name="undo" size={14} variant="silver" />
-                      <span>Back to contact details</span>
+                      <span>Back</span>
                     </button>
 
                     {/* Customer Summary */}
                     <div className="customer-summary">
-                      <Icon name="check-circle" size={18} variant="gold" />
-                      <span>Welcome, {customerName.split(' ')[0]}!</span>
+                      <Icon name="check-circle" size={16} variant="gold" />
+                      <span>{customerName.split(' ')[0]}</span>
                     </div>
 
                     {/* Model */}
@@ -585,137 +588,118 @@ export default function SellYourCarPage() {
                     </button>
                   </form>
                 )}
+
+                {/* Step 3: Results */}
+                {result && (
+                  <div id="result" className="result-content">
+                    {/* Get Another Quote Button */}
+                    <button 
+                      className="back-btn result-back"
+                      onClick={() => setResult(null)}
+                    >
+                      <Icon name="undo" size={14} variant="silver" />
+                      <span>Get another quote</span>
+                    </button>
+
+                    {/* Vehicle Summary */}
+                    <div className="vehicle-summary">
+                      {result.input.year} {formatModelName(result.input.model)} {result.input.trim || ''}
+                    </div>
+
+                    {/* Both Options Side by Side */}
+                    <div className="options-grid">
+                      {/* Cash Option */}
+                      <div className="option-card">
+                        <div className="option-header">
+                          <Icon name="zap" size={18} variant="gold" />
+                          <span>INSTANT CASH</span>
+                        </div>
+
+                        <div className="option-price">
+                          <p className="option-price-label">We pay you today</p>
+                          <p className="option-price-value">AED {formatPrice(result.pricing.offer_price)}</p>
+                        </div>
+
+                        <div className="option-benefits">
+                          <div className="benefit-item">
+                            <Icon name="check" size={12} variant="gold" />
+                            <span>Same day payment</span>
+                          </div>
+                          <div className="benefit-item">
+                            <Icon name="check" size={12} variant="gold" />
+                            <span>We handle paperwork</span>
+                          </div>
+                          <div className="benefit-item">
+                            <Icon name="check" size={12} variant="gold" />
+                            <span>Free inspection</span>
+                          </div>
+                        </div>
+
+                        <a
+                          href={`https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20am%20${encodeURIComponent(customerName)}%20and%20I%20would%20like%20the%20CASH%20offer%20for%20my%20${encodeURIComponent(result.input.year + ' Mercedes-Benz ' + result.input.model + ' ' + (result.input.trim || ''))}%20with%20${encodeURIComponent(formatPrice(result.input.mileage_km))}km.%20Your%20offer%20was%20AED%20${encodeURIComponent(formatPrice(result.pricing.offer_price))}.%20My%20number%20is%20${encodeURIComponent(getFullPhone())}.%20Please%20arrange%20inspection.`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="option-cta"
+                        >
+                          <Icon name="whatsapp" size={16} variant="dark" />
+                          <span>Accept Cash</span>
+                        </a>
+                      </div>
+
+                      {/* Consignment Option */}
+                      <div className="option-card">
+                        <div className="option-header">
+                          <Icon name="handshake" size={18} variant="gold" />
+                          <span>CONSIGNMENT</span>
+                        </div>
+
+                        <div className="option-price">
+                          <p className="option-price-label">You receive when sold</p>
+                          <p className="option-price-value">AED {formatPrice(result.consignment.customer_receives)}</p>
+                          <p className="option-price-extra">+AED {formatPrice(result.consignment.customer_receives - result.pricing.offer_price)} more</p>
+                        </div>
+
+                        <div className="option-benefits">
+                          <div className="benefit-item">
+                            <Icon name="check" size={12} variant="gold" />
+                            <span>Higher payout</span>
+                          </div>
+                          <div className="benefit-item">
+                            <Icon name="check" size={12} variant="gold" />
+                            <span>We market & sell</span>
+                          </div>
+                          <div className="benefit-item">
+                            <Icon name="check" size={12} variant="gold" />
+                            <span>Showroom display</span>
+                          </div>
+                        </div>
+
+                        <a
+                          href={`https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20am%20${encodeURIComponent(customerName)}%20and%20I%20am%20interested%20in%20CONSIGNMENT%20for%20my%20${encodeURIComponent(result.input.year + ' Mercedes-Benz ' + result.input.model + ' ' + (result.input.trim || ''))}%20with%20${encodeURIComponent(formatPrice(result.input.mileage_km))}km.%20Expected%20payout%20AED%20${encodeURIComponent(formatPrice(result.consignment.customer_receives))}.%20My%20number%20is%20${encodeURIComponent(getFullPhone())}.%20Please%20contact%20me.`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="option-cta"
+                        >
+                          <Icon name="whatsapp" size={16} variant="dark" />
+                          <span>Discuss</span>
+                        </a>
+                      </div>
+                    </div>
+
+                    {/* Call CTA */}
+                    <a href="tel:+971507779163" className="result-call-link">
+                      <Icon name="phone" size={14} variant="gold" />
+                      <span>Questions? Call +971 50 777 9163</span>
+                    </a>
+
+                    {/* Fine Print */}
+                    <p className="result-disclaimer">
+                      *Subject to vehicle inspection
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
-            )}
-
-            {/* Result Section */}
-            {result && (
-              <div id="result" className="result-container">
-                {/* Get Another Quote Button */}
-                <button 
-                  className="back-btn result-back"
-                  onClick={() => setResult(null)}
-                >
-                  <Icon name="undo" size={14} variant="silver" />
-                  <span>Get another quote</span>
-                </button>
-
-                {/* Both Options Side by Side */}
-                <div className="options-grid">
-                  {/* Cash Option */}
-                  <Card className="result-card option-card">
-                    <CardContent className="pt-6 pb-6">
-                      <div className="option-header">
-                        <Icon name="zap" size={20} variant="gold" />
-                        <span>INSTANT CASH</span>
-                      </div>
-
-                      <div className="option-price">
-                        <p className="option-price-label">We pay you today</p>
-                        <p className="option-price-value">AED {formatPrice(result.pricing.offer_price)}</p>
-                      </div>
-
-                      <div className="option-benefits">
-                        <div className="benefit-item">
-                          <Icon name="check" size={14} variant="gold" />
-                          <span>Same day payment</span>
-                        </div>
-                        <div className="benefit-item">
-                          <Icon name="check" size={14} variant="gold" />
-                          <span>We handle paperwork</span>
-                        </div>
-                        <div className="benefit-item">
-                          <Icon name="check" size={14} variant="gold" />
-                          <span>Free inspection</span>
-                        </div>
-                      </div>
-
-                      <a
-                        href={`https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20am%20${encodeURIComponent(customerName)}%20and%20I%20would%20like%20the%20CASH%20offer%20for%20my%20${encodeURIComponent(result.input.year + ' Mercedes-Benz ' + result.input.model + ' ' + (result.input.trim || ''))}%20with%20${encodeURIComponent(formatPrice(result.input.mileage_km))}km.%20Your%20offer%20was%20AED%20${encodeURIComponent(formatPrice(result.pricing.offer_price))}.%20My%20number%20is%20${encodeURIComponent(getFullPhone())}.%20Please%20arrange%20inspection.`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="option-cta"
-                      >
-                        <Icon name="whatsapp" size={18} variant="dark" />
-                        <span>Accept Cash Offer</span>
-                      </a>
-                    </CardContent>
-                  </Card>
-
-                  {/* Consignment Option */}
-                  <Card className="result-card option-card">
-                    <CardContent className="pt-6 pb-6">
-                      <div className="option-header">
-                        <Icon name="handshake" size={20} variant="gold" />
-                        <span>CONSIGNMENT</span>
-                      </div>
-
-                      <div className="option-price">
-                        <p className="option-price-label">You receive when sold</p>
-                        <p className="option-price-value">AED {formatPrice(result.consignment.customer_receives)}</p>
-                        <p className="option-price-extra">+AED {formatPrice(result.consignment.customer_receives - result.pricing.offer_price)} more</p>
-                      </div>
-
-                      <div className="option-benefits">
-                        <div className="benefit-item">
-                          <Icon name="check" size={14} variant="gold" />
-                          <span>Higher payout</span>
-                        </div>
-                        <div className="benefit-item">
-                          <Icon name="check" size={14} variant="gold" />
-                          <span>We market & sell</span>
-                        </div>
-                        <div className="benefit-item">
-                          <Icon name="check" size={14} variant="gold" />
-                          <span>Showroom display</span>
-                        </div>
-                      </div>
-
-                      <a
-                        href={`https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20am%20${encodeURIComponent(customerName)}%20and%20I%20am%20interested%20in%20CONSIGNMENT%20for%20my%20${encodeURIComponent(result.input.year + ' Mercedes-Benz ' + result.input.model + ' ' + (result.input.trim || ''))}%20with%20${encodeURIComponent(formatPrice(result.input.mileage_km))}km.%20Expected%20payout%20AED%20${encodeURIComponent(formatPrice(result.consignment.customer_receives))}.%20My%20number%20is%20${encodeURIComponent(getFullPhone())}.%20Please%20contact%20me.`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="option-cta"
-                      >
-                        <Icon name="whatsapp" size={18} variant="dark" />
-                        <span>Discuss Consignment</span>
-                      </a>
-                    </CardContent>
-                  </Card>
-                </div>
-
-                {/* Trust Stats */}
-                <div className="result-stats">
-                  <div className="result-stat">
-                    <p className="result-stat-value">2,000+</p>
-                    <p className="result-stat-label">Cars Sold</p>
-                  </div>
-                  <div className="result-stat-divider"></div>
-                  <div className="result-stat">
-                    <p className="result-stat-value">Since 2012</p>
-                    <p className="result-stat-label">Trusted in Dubai</p>
-                  </div>
-                  <div className="result-stat-divider"></div>
-                  <div className="result-stat">
-                    <p className="result-stat-value">4.9★</p>
-                    <p className="result-stat-label">Rating</p>
-                  </div>
-                </div>
-
-                {/* Call CTA */}
-                <a href="tel:+971507779163" className="result-cta-secondary standalone">
-                  <Icon name="phone" size={18} variant="gold" />
-                  <span>Questions? Call +971 50 777 9163</span>
-                </a>
-
-                {/* Fine Print */}
-                <p className="result-disclaimer">
-                  *Cash offer subject to vehicle inspection. Consignment payout depends on final sale price.
-                  Both options available for vehicles in good condition with clear title.
-                </p>
-              </div>
-            )}
           </div>
         </section>
 

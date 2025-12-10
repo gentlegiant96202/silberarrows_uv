@@ -1,85 +1,68 @@
 -- =====================================================
--- UV SALES ACCOUNTING - SOA UPDATE: Include Payment in Refunds
+-- UV SALES ACCOUNTING - SOA VIEW (CORRECT VERSION)
 -- =====================================================
--- Updates the SOA view to show which payment was refunded
+-- Shows ALL invoices, ALL payments, credit notes, and refunds
+-- Refunds show linked payment number
+-- No duplicate invoice_reversal section (credit notes handle reversals)
 -- =====================================================
 
--- Drop and recreate the SOA view with refund payment info
 CREATE OR REPLACE VIEW uv_statement_of_account AS
 WITH all_transactions AS (
-    -- Invoices (customer owes us - DEBIT)
+    -- ALL Invoices (including reversed - credit notes handle the reversal credit)
     SELECT 
-        inv.created_at as transaction_date,
-        'invoice' as transaction_type,
-        inv.invoice_number as reference,
-        'Invoice' as description,
-        inv.total_amount as debit,
-        0::numeric as credit,
+        inv.created_at AS transaction_date,
+        'invoice'::text AS transaction_type,
+        inv.invoice_number AS reference,
+        'Invoice'::text AS description,
+        inv.total_amount AS debit,
+        0::numeric AS credit,
         so.lead_id,
-        inv.id as source_id
+        inv.id AS source_id
     FROM uv_invoices inv
     JOIN uv_sales_orders so ON inv.sales_order_id = so.id
-    WHERE inv.status != 'reversed'
 
     UNION ALL
 
-    -- Reversed Invoices (show as reversal - CREDIT)
+    -- ALL Payments (allocated or not)
     SELECT 
-        inv.reversed_at as transaction_date,
-        'invoice_reversal' as transaction_type,
-        inv.invoice_number as reference,
-        'Invoice Reversed: ' || COALESCE(inv.reversal_reason, 'No reason') as description,
-        0::numeric as debit,
-        inv.total_amount as credit,
-        so.lead_id,
-        inv.id as source_id
-    FROM uv_invoices inv
-    JOIN uv_sales_orders so ON inv.sales_order_id = so.id
-    WHERE inv.status = 'reversed' AND inv.reversed_at IS NOT NULL
-
-    UNION ALL
-
-    -- Payments (customer paid us - CREDIT)
-    SELECT 
-        pa.created_at as transaction_date,
-        'payment' as transaction_type,
-        p.payment_number as reference,
-        'Payment (' || p.payment_method || ')' as description,
-        0::numeric as debit,
-        pa.amount as credit,
+        p.created_at AS transaction_date,
+        'payment'::text AS transaction_type,
+        p.payment_number AS reference,
+        'Payment (' || p.payment_method || ')' AS description,
+        0::numeric AS debit,
+        p.amount AS credit,
         p.lead_id,
-        pa.id as source_id
-    FROM uv_payment_allocations pa
-    JOIN uv_payments p ON pa.payment_id = p.id
+        p.id AS source_id
+    FROM uv_payments p
     WHERE p.status = 'received'
 
     UNION ALL
 
-    -- Credit Notes (reduces what customer owes - CREDIT)
+    -- Credit Notes
     SELECT 
-        adj.created_at as transaction_date,
-        'credit_note' as transaction_type,
-        adj.adjustment_number as reference,
-        'Credit Note: ' || adj.reason as description,
-        0::numeric as debit,
-        adj.amount as credit,
+        adj.created_at AS transaction_date,
+        'credit_note'::text AS transaction_type,
+        adj.adjustment_number AS reference,
+        'Credit Note: ' || adj.reason AS description,
+        0::numeric AS debit,
+        adj.amount AS credit,
         adj.lead_id,
-        adj.id as source_id
+        adj.id AS source_id
     FROM uv_adjustments adj
     WHERE adj.adjustment_type = 'credit_note'
 
     UNION ALL
 
-    -- Refunds (we return money - DEBIT) - NOW INCLUDES PAYMENT NUMBER
+    -- Refunds WITH linked payment (new refunds via uv_refund_allocations)
     SELECT 
-        adj.created_at as transaction_date,
-        'refund' as transaction_type,
-        adj.adjustment_number as reference,
-        'Refund of ' || COALESCE(p.payment_number, 'N/A') || ' (' || COALESCE(adj.refund_method, 'N/A') || '): ' || adj.reason as description,
-        ra.amount as debit,  -- Use allocation amount (allows partial refunds)
-        0::numeric as credit,
+        adj.created_at AS transaction_date,
+        'refund'::text AS transaction_type,
+        adj.adjustment_number AS reference,
+        'Refund of ' || p.payment_number || ' (' || COALESCE(adj.refund_method, 'N/A') || '): ' || adj.reason AS description,
+        ra.amount AS debit,
+        0::numeric AS credit,
         adj.lead_id,
-        ra.id as source_id  -- Use allocation id for uniqueness
+        ra.id AS source_id
     FROM uv_adjustments adj
     JOIN uv_refund_allocations ra ON ra.refund_id = adj.id
     JOIN uv_payments p ON ra.payment_id = p.id
@@ -87,21 +70,19 @@ WITH all_transactions AS (
 
     UNION ALL
 
-    -- Legacy Refunds (not linked to payments - for backward compatibility)
+    -- Refunds WITHOUT linked payment (legacy refunds before refund allocations)
     SELECT 
-        adj.created_at as transaction_date,
-        'refund' as transaction_type,
-        adj.adjustment_number as reference,
-        'Refund (' || COALESCE(adj.refund_method, 'N/A') || '): ' || adj.reason as description,
-        adj.amount as debit,
-        0::numeric as credit,
+        adj.created_at AS transaction_date,
+        'refund'::text AS transaction_type,
+        adj.adjustment_number AS reference,
+        'Refund (' || COALESCE(adj.refund_method, 'N/A') || '): ' || adj.reason AS description,
+        adj.amount AS debit,
+        0::numeric AS credit,
         adj.lead_id,
-        adj.id as source_id
+        adj.id AS source_id
     FROM uv_adjustments adj
     WHERE adj.adjustment_type = 'refund'
-    AND NOT EXISTS (
-        SELECT 1 FROM uv_refund_allocations ra WHERE ra.refund_id = adj.id
-    )
+    AND NOT EXISTS (SELECT 1 FROM uv_refund_allocations ra WHERE ra.refund_id = adj.id)
 )
 SELECT 
     transaction_date,
@@ -112,27 +93,43 @@ SELECT
     credit,
     lead_id,
     source_id,
-    -- Running balance (cumulative debit - credit)
     SUM(debit - credit) OVER (
         PARTITION BY lead_id 
         ORDER BY transaction_date, 
-                 CASE transaction_type 
-                     WHEN 'invoice' THEN 1 
-                     WHEN 'payment' THEN 2 
-                     WHEN 'credit_note' THEN 3 
-                     WHEN 'refund' THEN 4
-                     WHEN 'invoice_reversal' THEN 5
-                     ELSE 6 
-                 END,
-                 reference
+            CASE transaction_type 
+                WHEN 'invoice' THEN 1 
+                WHEN 'payment' THEN 2 
+                WHEN 'credit_note' THEN 3 
+                WHEN 'refund' THEN 4
+                ELSE 5 
+            END,
+            reference
         ROWS UNBOUNDED PRECEDING
-    ) as running_balance
+    ) AS running_balance
 FROM all_transactions
 ORDER BY lead_id, transaction_date, reference;
 
--- Add comment
-COMMENT ON VIEW uv_statement_of_account IS 'Combined view of all customer transactions for SOA generation - includes refund payment linkage';
+-- Update the get_customer_balance function to match
+CREATE OR REPLACE FUNCTION get_customer_balance(p_lead_id UUID)
+RETURNS TABLE (
+    total_invoiced NUMERIC,
+    total_paid NUMERIC,
+    total_credit_notes NUMERIC,
+    total_refunds NUMERIC,
+    current_balance NUMERIC
+) AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        COALESCE(SUM(CASE WHEN transaction_type = 'invoice' THEN debit ELSE 0 END), 0) as total_invoiced,
+        COALESCE(SUM(CASE WHEN transaction_type = 'payment' THEN credit ELSE 0 END), 0) as total_paid,
+        COALESCE(SUM(CASE WHEN transaction_type = 'credit_note' THEN credit ELSE 0 END), 0) as total_credit_notes,
+        COALESCE(SUM(CASE WHEN transaction_type = 'refund' THEN debit ELSE 0 END), 0) as total_refunds,
+        COALESCE(SUM(debit - credit), 0) as current_balance
+    FROM uv_statement_of_account
+    WHERE lead_id = p_lead_id;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
 -- Verify
-SELECT 'SOA view updated to include payment number in refunds' AS status;
-
+SELECT 'SOA view updated with correct logic' AS status;

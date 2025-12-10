@@ -1,30 +1,15 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import Image from 'next/image';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Separator } from '@/components/ui/separator';
-import { 
-  Car, 
-  Calculator, 
-  Phone, 
-  MessageCircle, 
-  CheckCircle2, 
-  Clock, 
-  Shield, 
-  Banknote,
-  ChevronDown,
-  Loader2,
-  TrendingUp,
-  Users,
-  Zap
-} from 'lucide-react';
+import Icon from '@/components/modules/leasing/Icon';
+import './sell-your-car.css';
 
 interface PriceEstimate {
   status: string;
@@ -61,6 +46,7 @@ export default function SellYourCarPage() {
   const [models, setModels] = useState<string[]>([]);
   const [trims, setTrims] = useState<string[]>([]);
   const [yearRange, setYearRange] = useState({ min_year: 2016, max_year: 2025 });
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   const [selectedModel, setSelectedModel] = useState('');
   const [selectedTrim, setSelectedTrim] = useState('');
@@ -73,12 +59,10 @@ export default function SellYourCarPage() {
   const [result, setResult] = useState<PriceEstimate | null>(null);
   const [error, setError] = useState('');
 
-  // Fetch available models on mount
   useEffect(() => {
     fetchModels();
   }, []);
 
-  // Fetch trims when model changes
   useEffect(() => {
     if (selectedModel) {
       fetchTrims(selectedModel);
@@ -149,7 +133,6 @@ export default function SellYourCarPage() {
       
       setResult(data);
       
-      // Scroll to result
       setTimeout(() => {
         document.getElementById('result')?.scrollIntoView({ behavior: 'smooth' });
       }, 100);
@@ -178,576 +161,563 @@ export default function SellYourCarPage() {
   };
 
   return (
-    <div className="min-h-screen bg-black">
+    <>
       {/* Header */}
-      <header className="fixed top-0 left-0 right-0 z-50 bg-black/90 backdrop-blur-xl border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 md:px-8 h-20 flex items-center justify-between">
-          <Image
-            src="/assets/icons/silberarrows-logo.png"
-            alt="SilberArrows"
-            width={180}
-            height={54}
-            className="h-12 w-auto"
-          />
-          <a 
-            href="tel:+971507779163"
-            className="hidden md:flex items-center gap-2 text-white/80 hover:text-white transition-colors"
-          >
-            <Phone className="h-4 w-4" />
-            <span className="text-sm font-medium">+971 50 777 9163</span>
-          </a>
-        </div>
-      </header>
-
-      {/* Hero Section */}
-      <section className="relative min-h-[70vh] flex items-center pt-20">
-        {/* Background */}
-        <div className="absolute inset-0">
-          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/95 to-black/70" />
-          <div 
-            className="absolute right-0 top-0 w-[60%] h-full bg-cover bg-center opacity-60"
-            style={{ 
-              backgroundImage: 'url(/assets/images/hero-bg-silver-optimized.jpg)',
-              clipPath: 'polygon(25% 0%, 100% 0%, 100% 100%, 0% 100%)'
-            }}
-          />
-        </div>
-
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 md:px-8 py-16">
-          <div className="max-w-2xl">
-            {/* Logo */}
-            <Image
-              src="/assets/icons/silberarrows-logo.png"
-              alt="SilberArrows"
-              width={280}
-              height={84}
-              className="h-20 w-auto mb-6"
-            />
-            
-            {/* Tagline */}
-            <p className="text-zinc-400 text-sm font-semibold tracking-[0.2em] uppercase mb-4">
-              Instant Cash Offers
-            </p>
-            
-            {/* Title */}
-            <h1 className="text-5xl md:text-7xl font-black text-white leading-[0.9] tracking-tight mb-6">
-              SELL YOUR<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-zinc-300 via-white to-zinc-400">
-                MERCEDES-BENZ
-              </span><br />
-              TODAY
-            </h1>
-            
-            {/* Subtitle */}
-            <p className="text-zinc-400 text-lg max-w-lg mb-8">
-              Get an instant market valuation and cash offer for your Mercedes-Benz.
-              No obligations, no hidden fees.
-            </p>
-            
-            {/* Highlights */}
-            <div className="flex flex-wrap gap-3 mb-8">
-              <Badge variant="outline" className="bg-white/5 border-white/20 text-white px-4 py-2">
-                <Zap className="h-4 w-4 mr-2 text-yellow-400" />
-                Instant Valuation
-              </Badge>
-              <Badge variant="outline" className="bg-white/5 border-white/20 text-white px-4 py-2">
-                <Banknote className="h-4 w-4 mr-2 text-green-400" />
-                Same Day Payment
-              </Badge>
-              <Badge variant="outline" className="bg-white/5 border-white/20 text-white px-4 py-2">
-                <Shield className="h-4 w-4 mr-2 text-blue-400" />
-                Free Inspection
-              </Badge>
+      <div className="showroom-header">
+        <header>
+          <div className="header-inner">
+            <div className="header-logo">
+              <img 
+                src="/assets/icons/silberarrows-logo.png" 
+                alt="SilberArrows" 
+                width={160} 
+                height={54}
+              />
+            </div>
+            <div className="header-right">
+              <nav className="header-nav">
+                <a href="#calculator">GET OFFER</a>
+                <a href="#why-us">WHY US</a>
+                <a href="#contact">CONTACT</a>
+              </nav>
+              <div className="header-contact-info">
+                <div className="phone-line">
+                  <Icon name="phone" size={12} variant="gold" />
+                  <a href="tel:+971507779163" style={{ color: 'inherit', textDecoration: 'none' }}>
+                    +971 50 777 9163
+                  </a>
+                </div>
+              </div>
             </div>
             
-            {/* CTA */}
-            <Button 
-              size="lg"
-              onClick={() => document.getElementById('calculator')?.scrollIntoView({ behavior: 'smooth' })}
-              className="bg-white text-black hover:bg-zinc-200 font-bold text-lg px-8 py-6 h-auto"
+            {/* Mobile Hamburger Menu */}
+            <button 
+              className="mobile-menu-toggle"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              aria-label="Toggle menu"
             >
-              GET YOUR VALUATION
-              <ChevronDown className="ml-2 h-5 w-5" />
-            </Button>
+              <span className={`hamburger ${mobileMenuOpen ? 'open' : ''}`}>
+                <span></span>
+                <span></span>
+                <span></span>
+              </span>
+            </button>
           </div>
-        </div>
-      </section>
+        </header>
 
-      {/* Calculator Section */}
-      <section id="calculator" className="py-20 px-4 md:px-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-black text-white mb-4">
-              GET YOUR INSTANT OFFER
-            </h2>
-            <p className="text-zinc-400 max-w-xl mx-auto">
-              Enter your vehicle details below. Our pricing engine analyzes real market data
-              to give you a fair, competitive offer.
+        {/* Mobile Menu Overlay */}
+        {mobileMenuOpen && (
+          <div className="mobile-menu-overlay" onClick={() => setMobileMenuOpen(false)}>
+            <div className="mobile-menu" onClick={(e) => e.stopPropagation()}>
+              <button 
+                className="mobile-menu-close"
+                onClick={() => setMobileMenuOpen(false)}
+                aria-label="Close menu"
+              >
+                <Icon name="times" size={24} variant="gold" />
+              </button>
+              
+              <nav className="mobile-nav">
+                <a href="#calculator" onClick={() => setMobileMenuOpen(false)}>GET OFFER</a>
+                <a href="#why-us" onClick={() => setMobileMenuOpen(false)}>WHY US</a>
+                <a href="#contact" onClick={() => setMobileMenuOpen(false)}>CONTACT</a>
+              </nav>
+              <div className="mobile-menu-contact">
+                <div className="mobile-contact-item">
+                  <Icon name="phone" size={16} variant="gold" />
+                  <a href="tel:+971507779163">+971 50 777 9163</a>
+                </div>
+                <div className="mobile-contact-item">
+                  <Icon name="whatsapp" size={16} variant="gold" />
+                  <a href="https://wa.me/97143805515">WhatsApp</a>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Main Content */}
+      <main className="showroom-main">
+        {/* Hero Section */}
+        <section className="hero hero-loaded">
+          <div className="hero-content">
+            <div className="hero-logo">
+              <img 
+                src="/assets/icons/silberarrows-logo.png" 
+                alt="SilberArrows Logo" 
+                className="hero-logo-img" 
+                width={300} 
+                height={90} 
+              />
+            </div>
+            <div className="hero-tagline">Instant Cash Offers</div>
+            <h1 className="hero-title">
+              SELL YOUR<br />
+              <span>MERCEDES-BENZ</span><br />
+              TODAY
+            </h1>
+            <p className="hero-subtitle">
+              Get an instant market valuation and cash offer<br />
+              for your Mercedes-Benz. No obligations, no hidden fees.
             </p>
+
+            <div className="hero-highlights">
+              <div className="highlight-item">
+                <Icon name="zap" size={16} variant="silver" />
+                <span>Instant Valuation</span>
+              </div>
+              <div className="highlight-item">
+                <Icon name="dirham" size={16} variant="silver" />
+                <span>Same Day Payment</span>
+              </div>
+              <div className="highlight-item">
+                <Icon name="shield-alt" size={16} variant="silver" />
+                <span>Free Inspection</span>
+              </div>
+            </div>
+
+            <div className="hero-cta-container">
+              <button
+                className="hero-cta"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById('calculator')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+              >
+                <span>GET YOUR OFFER</span>
+              </button>
+            </div>
+
+            <div className="year-badge">
+              <Icon name="medal" size={20} />
+              Dubai&apos;s Trusted Mercedes-Benz Buyers Since 2020
+            </div>
+          </div>
+        </section>
+
+        {/* Calculator Section */}
+        <section className="vehicles-section" id="calculator">
+          <div className="section-header">
+            <h2>GET YOUR INSTANT OFFER</h2>
+            <p>Enter your vehicle details for an accurate market valuation</p>
           </div>
 
-          <Card className="bg-zinc-900/50 border-zinc-800 backdrop-blur-xl">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <Calculator className="h-5 w-5 text-zinc-400" />
-                Vehicle Details
-              </CardTitle>
-              <CardDescription>
-                All fields are required for accurate valuation
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                {/* Model */}
-                <div className="space-y-2">
-                  <Label htmlFor="model" className="text-zinc-300">Model</Label>
-                  <Select 
-                    value={selectedModel} 
-                    onValueChange={setSelectedModel}
-                    disabled={loadingModels}
-                  >
-                    <SelectTrigger className="bg-black/50 border-zinc-700 text-white h-12">
-                      <SelectValue placeholder={loadingModels ? "Loading models..." : "Select Model"} />
-                    </SelectTrigger>
-                    <SelectContent className="bg-zinc-900 border-zinc-700">
-                      {models.map(model => (
-                        <SelectItem key={model} value={model} className="text-white hover:bg-zinc-800">
-                          {model}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Trim */}
-                <div className="space-y-2">
-                  <Label htmlFor="trim" className="text-zinc-300">Trim</Label>
-                  <Select 
-                    value={selectedTrim} 
-                    onValueChange={setSelectedTrim}
-                    disabled={!selectedModel || loadingTrims}
-                  >
-                    <SelectTrigger className="bg-black/50 border-zinc-700 text-white h-12">
-                      <SelectValue placeholder={
-                        loadingTrims ? "Loading trims..." : 
-                        selectedModel ? "Select Trim" : 
-                        "Select model first"
-                      } />
-                    </SelectTrigger>
-                    <SelectContent className="bg-zinc-900 border-zinc-700">
-                      {trims.map(trim => (
-                        <SelectItem key={trim} value={trim} className="text-white hover:bg-zinc-800">
-                          {trim}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {/* Year and Mileage Row */}
-                <div className="grid grid-cols-2 gap-4">
-                  {/* Year */}
-                  <div className="space-y-2">
-                    <Label htmlFor="year" className="text-zinc-300">Year</Label>
+          <div className="calculator-container">
+            <Card className="calculator-card">
+              <CardContent className="pt-6">
+                <form onSubmit={handleSubmit} className="calculator-form">
+                  {/* Model */}
+                  <div className="form-group">
+                    <Label className="form-label">Model</Label>
                     <Select 
-                      value={selectedYear} 
-                      onValueChange={setSelectedYear}
-                      disabled={!selectedModel}
+                      value={selectedModel} 
+                      onValueChange={setSelectedModel}
+                      disabled={loadingModels}
                     >
-                      <SelectTrigger className="bg-black/50 border-zinc-700 text-white h-12">
-                        <SelectValue placeholder="Select Year" />
+                      <SelectTrigger className="form-select">
+                        <SelectValue placeholder={loadingModels ? "Loading..." : "Select Model"} />
                       </SelectTrigger>
-                      <SelectContent className="bg-zinc-900 border-zinc-700">
-                        {generateYears().map(year => (
-                          <SelectItem key={year} value={year.toString()} className="text-white hover:bg-zinc-800">
-                            {year}
+                      <SelectContent className="select-content">
+                        {models.map(model => (
+                          <SelectItem key={model} value={model} className="select-item">
+                            {model}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
                   </div>
 
-                  {/* Mileage */}
-                  <div className="space-y-2">
-                    <Label htmlFor="mileage" className="text-zinc-300">Mileage (km)</Label>
-                    <Input
-                      id="mileage"
-                      type="text"
-                      value={mileage}
-                      onChange={(e) => setMileage(formatMileage(e.target.value))}
-                      placeholder="e.g. 50,000"
-                      className="bg-black/50 border-zinc-700 text-white h-12 placeholder:text-zinc-500"
-                    />
+                  {/* Trim */}
+                  <div className="form-group">
+                    <Label className="form-label">Trim</Label>
+                    <Select 
+                      value={selectedTrim} 
+                      onValueChange={setSelectedTrim}
+                      disabled={!selectedModel || loadingTrims}
+                    >
+                      <SelectTrigger className="form-select">
+                        <SelectValue placeholder={
+                          loadingTrims ? "Loading..." : 
+                          selectedModel ? "Select Trim" : 
+                          "Select model first"
+                        } />
+                      </SelectTrigger>
+                      <SelectContent className="select-content">
+                        {trims.map(trim => (
+                          <SelectItem key={trim} value={trim} className="select-item">
+                            {trim}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                </div>
 
-                {/* Error Message with Fallback CTA */}
-                {error && (
-                  <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-5">
-                    <div className="flex items-start gap-3 mb-4">
-                      <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
-                        <Calculator className="h-5 w-5 text-amber-400" />
-                      </div>
-                      <div>
-                        <p className="text-white font-medium mb-1">
-                          Limited Market Data Available
-                        </p>
-                        <p className="text-zinc-400 text-sm">
-                          We don&apos;t have enough listings for this specific combination to give you an instant quote. 
-                          Contact us directly for a personalized valuation.
-                        </p>
-                      </div>
+                  {/* Year and Mileage Row */}
+                  <div className="form-row">
+                    <div className="form-group">
+                      <Label className="form-label">Year</Label>
+                      <Select 
+                        value={selectedYear} 
+                        onValueChange={setSelectedYear}
+                        disabled={!selectedModel}
+                      >
+                        <SelectTrigger className="form-select">
+                          <SelectValue placeholder="Year" />
+                        </SelectTrigger>
+                        <SelectContent className="select-content">
+                          {generateYears().map(year => (
+                            <SelectItem key={year} value={year.toString()} className="select-item">
+                              {year}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <div className="flex gap-3">
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        asChild
-                        className="flex-1 border-zinc-600 text-white hover:bg-zinc-800"
-                      >
-                        <a href="tel:+971507779163">
-                          <Phone className="h-4 w-4 mr-2" />
-                          Call Us
+
+                    <div className="form-group">
+                      <Label className="form-label">Mileage (km)</Label>
+                      <Input
+                        type="text"
+                        value={mileage}
+                        onChange={(e) => setMileage(formatMileage(e.target.value))}
+                        placeholder="e.g. 50,000"
+                        className="form-input"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Error Message with Fallback */}
+                  {error && (
+                    <div className="error-card">
+                      <div className="error-icon">
+                        <Icon name="info-circle" size={20} variant="gold" />
+                      </div>
+                      <div className="error-content">
+                        <p className="error-title">Limited Market Data</p>
+                        <p className="error-text">
+                          Contact us directly for a personalized quote.
+                        </p>
+                      </div>
+                      <div className="error-actions">
+                        <a href="tel:+971507779163" className="error-btn">
+                          <Icon name="phone" size={14} variant="gold" />
+                          Call
                         </a>
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        asChild
-                        className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-                      >
-                        <a
-                          href={`https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20would%20like%20to%20get%20a%20quote%20for%20my%20${encodeURIComponent(selectedYear + ' Mercedes-Benz ' + selectedModel + ' ' + selectedTrim)}%20with%20${encodeURIComponent(mileage)}km`}
+                        <a 
+                          href={`https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20would%20like%20a%20quote%20for%20my%20${encodeURIComponent(selectedYear + ' Mercedes-Benz ' + selectedModel + ' ' + selectedTrim)}%20with%20${encodeURIComponent(mileage)}km`}
                           target="_blank"
                           rel="noopener noreferrer"
+                          className="error-btn whatsapp"
                         >
-                          <MessageCircle className="h-4 w-4 mr-2" />
-                          WhatsApp Quote
+                          <Icon name="whatsapp" size={14} variant="white" />
+                          WhatsApp
                         </a>
-                      </Button>
+                      </div>
                     </div>
-                  </div>
-                )}
-
-                {/* Submit Button */}
-                <Button
-                  type="submit"
-                  size="lg"
-                  disabled={loading || !selectedModel || !selectedTrim || !selectedYear || !mileage}
-                  className="w-full bg-white text-black hover:bg-zinc-200 font-bold h-14 text-lg"
-                >
-                  {loading ? (
-                    <>
-                      <Loader2 className="mr-2 h-5 w-5 animate-spin" />
-                      Calculating...
-                    </>
-                  ) : (
-                    <>
-                      <Calculator className="mr-2 h-5 w-5" />
-                      Get My Offer
-                    </>
                   )}
-                </Button>
-              </form>
-            </CardContent>
-          </Card>
 
-          {/* Result Section */}
-          {result && (
-            <div id="result" className="mt-8 space-y-6">
-              {/* Main Offer Card */}
-              <Card className="bg-gradient-to-br from-zinc-900 to-zinc-950 border-zinc-700 overflow-hidden relative">
-                <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/10 rounded-full blur-3xl" />
-                <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500/5 rounded-full blur-3xl" />
-                <CardContent className="pt-8 pb-8 relative">
-                  {/* Vehicle Info */}
-                  <div className="text-center mb-6">
-                    <p className="text-zinc-500 text-sm mb-1">Your Vehicle</p>
-                    <p className="text-white text-xl font-bold">
-                      {result.input.year} Mercedes-Benz {result.input.model} {result.input.trim}
-                    </p>
-                    <p className="text-zinc-400 text-sm">{formatPrice(result.input.mileage_km)} km</p>
-                  </div>
+                  {/* Submit Button */}
+                  <button
+                    type="submit"
+                    disabled={loading || !selectedModel || !selectedTrim || !selectedYear || !mileage}
+                    className="submit-btn"
+                  >
+                    {loading ? (
+                      <span>Calculating...</span>
+                    ) : (
+                      <span>GET MY OFFER</span>
+                    )}
+                  </button>
+                </form>
+              </CardContent>
+            </Card>
 
-                  {/* Main Offer */}
-                  <div className="text-center mb-8">
-                    <p className="text-zinc-400 text-sm font-medium uppercase tracking-wider mb-3">
-                      Your Instant Cash Offer
-                    </p>
-                    <div className="text-6xl md:text-7xl font-black text-green-400 mb-3">
-                      AED {formatPrice(result.pricing.offer_price)}
+            {/* Result Section */}
+            {result && (
+              <div id="result" className="result-container">
+                <Card className="result-card">
+                  <CardContent className="pt-8 pb-8">
+                    {/* Vehicle Info */}
+                    <div className="result-vehicle">
+                      <p className="result-vehicle-label">Your Vehicle</p>
+                      <p className="result-vehicle-name">
+                        {result.input.year} Mercedes-Benz {result.input.model} {result.input.trim}
+                      </p>
+                      <p className="result-vehicle-mileage">{formatPrice(result.input.mileage_km)} km</p>
                     </div>
-                    <div className="flex items-center justify-center gap-2 text-zinc-400 text-sm">
-                      <Clock className="h-4 w-4" />
-                      <span>Valid for 7 days</span>
-                    </div>
-                  </div>
 
-                  {/* Trust Badges */}
-                  <div className="flex justify-center gap-3 flex-wrap mb-8">
-                    <Badge variant="outline" className="px-4 py-2 bg-zinc-500/10 border-zinc-500/30 text-zinc-300">
-                      <Car className="h-4 w-4 mr-2" />
-                      Subject to Inspection
-                    </Badge>
-                    <Badge variant="outline" className="px-4 py-2 bg-blue-500/10 border-blue-500/30 text-blue-400">
-                      <Shield className="h-4 w-4 mr-2" />
-                      No Hidden Fees
-                    </Badge>
-                  </div>
-
-                  {/* What's Included */}
-                  <div className="bg-black/30 rounded-xl p-6 mb-8">
-                    <p className="text-white font-semibold text-center mb-4">What&apos;s Included</p>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="text-center">
-                        <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center mx-auto mb-2">
-                          <Zap className="h-6 w-6 text-yellow-400" />
-                        </div>
-                        <p className="text-white text-sm font-medium">Same Day</p>
-                        <p className="text-zinc-500 text-xs">Payment</p>
+                    {/* Main Offer */}
+                    <div className="result-offer">
+                      <p className="result-offer-label">YOUR INSTANT CASH OFFER</p>
+                      <div className="result-offer-price">
+                        AED {formatPrice(result.pricing.offer_price)}
                       </div>
-                      <div className="text-center">
-                        <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center mx-auto mb-2">
-                          <Shield className="h-6 w-6 text-blue-400" />
-                        </div>
-                        <p className="text-white text-sm font-medium">Free</p>
-                        <p className="text-zinc-500 text-xs">Inspection</p>
-                      </div>
-                      <div className="text-center">
-                        <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-2">
-                          <Car className="h-6 w-6 text-green-400" />
-                        </div>
-                        <p className="text-white text-sm font-medium">We Handle</p>
-                        <p className="text-zinc-500 text-xs">Transfer</p>
-                      </div>
-                      <div className="text-center">
-                        <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center mx-auto mb-2">
-                          <Users className="h-6 w-6 text-purple-400" />
-                        </div>
-                        <p className="text-white text-sm font-medium">No</p>
-                        <p className="text-zinc-500 text-xs">Haggling</p>
+                      <div className="result-offer-validity">
+                        <Icon name="clock" size={14} variant="silver" />
+                        <span>Valid for 7 days</span>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Trust Stats */}
-                  <div className="flex justify-center gap-8 mb-8 text-center">
-                    <div>
-                      <p className="text-2xl font-bold text-white">500+</p>
-                      <p className="text-xs text-zinc-500">Cars Purchased</p>
+                    {/* Trust Badges */}
+                    <div className="result-badges">
+                      <div className="result-badge">
+                        <Icon name="car" size={14} variant="silver" />
+                        <span>Subject to Inspection</span>
+                      </div>
+                      <div className="result-badge">
+                        <Icon name="shield-alt" size={14} variant="silver" />
+                        <span>No Hidden Fees</span>
+                      </div>
                     </div>
-                    <div className="w-px bg-zinc-700" />
-                    <div>
-                      <p className="text-2xl font-bold text-white">Since 2020</p>
-                      <p className="text-xs text-zinc-500">Trusted in Dubai</p>
-                    </div>
-                    <div className="w-px bg-zinc-700" />
-                    <div>
-                      <p className="text-2xl font-bold text-white">4.9★</p>
-                      <p className="text-xs text-zinc-500">Customer Rating</p>
-                    </div>
-                  </div>
 
-                  {/* CTA Buttons */}
-                  <div className="space-y-3">
-                    <Button
-                      size="lg"
-                      asChild
-                      className="w-full bg-green-600 hover:bg-green-700 text-white font-bold h-14 text-lg"
-                    >
+                    {/* What's Included */}
+                    <div className="result-included">
+                      <p className="result-included-title">What&apos;s Included</p>
+                      <div className="result-included-grid">
+                        <div className="result-included-item">
+                          <div className="result-included-icon yellow">
+                            <Icon name="zap" size={20} variant="dark" />
+                          </div>
+                          <p className="result-included-name">Same Day</p>
+                          <p className="result-included-desc">Payment</p>
+                        </div>
+                        <div className="result-included-item">
+                          <div className="result-included-icon blue">
+                            <Icon name="shield-alt" size={20} variant="dark" />
+                          </div>
+                          <p className="result-included-name">Free</p>
+                          <p className="result-included-desc">Inspection</p>
+                        </div>
+                        <div className="result-included-item">
+                          <div className="result-included-icon green">
+                            <Icon name="car" size={20} variant="dark" />
+                          </div>
+                          <p className="result-included-name">We Handle</p>
+                          <p className="result-included-desc">Transfer</p>
+                        </div>
+                        <div className="result-included-item">
+                          <div className="result-included-icon purple">
+                            <Icon name="handshake" size={20} variant="dark" />
+                          </div>
+                          <p className="result-included-name">No</p>
+                          <p className="result-included-desc">Haggling</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Trust Stats */}
+                    <div className="result-stats">
+                      <div className="result-stat">
+                        <p className="result-stat-value">500+</p>
+                        <p className="result-stat-label">Cars Purchased</p>
+                      </div>
+                      <div className="result-stat-divider"></div>
+                      <div className="result-stat">
+                        <p className="result-stat-value">Since 2020</p>
+                        <p className="result-stat-label">Trusted in Dubai</p>
+                      </div>
+                      <div className="result-stat-divider"></div>
+                      <div className="result-stat">
+                        <p className="result-stat-value">4.9★</p>
+                        <p className="result-stat-label">Rating</p>
+                      </div>
+                    </div>
+
+                    {/* CTA Buttons */}
+                    <div className="result-cta">
                       <a
                         href={`https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20would%20like%20to%20sell%20my%20${encodeURIComponent(result.input.year + ' Mercedes-Benz ' + result.input.model + ' ' + (result.input.trim || ''))}%20with%20${encodeURIComponent(formatPrice(result.input.mileage_km))}km.%20Your%20offer%20was%20AED%20${encodeURIComponent(formatPrice(result.pricing.offer_price))}.%20Please%20arrange%20inspection.`}
                         target="_blank"
                         rel="noopener noreferrer"
+                        className="result-cta-primary"
                       >
-                        <MessageCircle className="mr-2 h-5 w-5" />
-                        Accept Offer on WhatsApp
+                        <Icon name="whatsapp" size={20} variant="dark" />
+                        <span>Accept Offer on WhatsApp</span>
                       </a>
-                    </Button>
-                    <Button
-                      size="lg"
-                      variant="outline"
-                      asChild
-                      className="w-full border-zinc-600 text-white hover:bg-zinc-800 h-12"
-                    >
-                      <a href="tel:+971507779163">
-                        <Phone className="mr-2 h-5 w-5" />
-                        Call Us: +971 50 777 9163
+                      <a href="tel:+971507779163" className="result-cta-secondary">
+                        <Icon name="phone" size={18} variant="gold" />
+                        <span>Call Us: +971 50 777 9163</span>
                       </a>
-                    </Button>
-                  </div>
+                    </div>
 
-                  {/* Fine Print */}
-                  <p className="text-zinc-600 text-xs text-center mt-6">
-                    *Final offer subject to vehicle inspection. Offer valid for vehicles in good condition 
-                    with clear title and no outstanding finance.
-                  </p>
-                </CardContent>
-              </Card>
+                    {/* Fine Print */}
+                    <p className="result-disclaimer">
+                      *Final offer subject to vehicle inspection. Offer valid for vehicles in good condition 
+                      with clear title and no outstanding finance.
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+          </div>
+        </section>
+
+        {/* Why Sell With Us */}
+        <section className="why-choose-us-section" id="why-us">
+          <div className="why-choose-us-content">
+            <div className="section-header">
+              <h2>WHY SELL WITH US?</h2>
+              <p>Skip the hassle of private sales. Get a fair price with zero stress.</p>
             </div>
-          )}
-        </div>
-      </section>
-
-      {/* Why Sell With Us Section */}
-      <section className="py-20 px-4 md:px-8 bg-zinc-950">
-        <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-black text-white mb-4">
-              WHY SELL WITH US?
-            </h2>
-            <p className="text-zinc-400 max-w-xl mx-auto">
-              Skip the hassle of private sales. Get a fair price with zero stress.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            {[
-              {
-                icon: <TrendingUp className="h-8 w-8" />,
-                title: 'FAIR MARKET PRICE',
-                description: 'Our pricing is based on real market data from thousands of listings.'
-              },
-              {
-                icon: <Zap className="h-8 w-8" />,
-                title: 'INSTANT PAYMENT',
-                description: 'Get paid the same day. No waiting, no financing delays.'
-              },
-              {
-                icon: <Shield className="h-8 w-8" />,
-                title: 'FREE INSPECTION',
-                description: 'Our experts inspect your car at your location. No hidden fees.'
-              },
-              {
-                icon: <Users className="h-8 w-8" />,
-                title: 'NO HAGGLING',
-                description: 'Our offer is our best price. No back-and-forth negotiation.'
-              },
-              {
-                icon: <Car className="h-8 w-8" />,
-                title: 'WE HANDLE EVERYTHING',
-                description: 'Transfer, paperwork, and registration - we take care of it all.'
-              },
-              {
-                icon: <Clock className="h-8 w-8" />,
-                title: '24-HOUR PROCESS',
-                description: 'From valuation to payment, the entire process takes less than a day.'
-              }
-            ].map((feature, index) => (
-              <Card key={index} className="bg-zinc-900/50 border-zinc-800 hover:border-zinc-700 transition-colors">
-                <CardContent className="pt-6">
-                  <div className="w-14 h-14 rounded-full bg-white/10 flex items-center justify-center mb-4 text-white">
-                    {feature.icon}
+            <div className="features-columns">
+              <div className="feature-column">
+                <div className="feature-card">
+                  <div className="feature-icon">
+                    <Icon name="chart-line" size={22} variant="dark" />
                   </div>
-                  <h3 className="text-white font-bold text-lg mb-2">{feature.title}</h3>
-                  <p className="text-zinc-400 text-sm">{feature.description}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Contact Section */}
-      <section className="py-20 px-4 md:px-8">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-black text-white mb-4">
-              CONTACT US
-            </h2>
-            <p className="text-zinc-400">
-              Have questions? We&apos;re here to help.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <Card className="bg-zinc-900/50 border-zinc-800">
-              <CardContent className="pt-6">
-                <Phone className="h-8 w-8 text-white mb-4" />
-                <h3 className="text-white font-bold text-lg mb-2">Call Us</h3>
-                <p className="text-zinc-400 text-sm mb-4">For immediate assistance</p>
-                <a 
-                  href="tel:+971507779163"
-                  className="text-white font-bold text-xl hover:text-zinc-300 transition-colors"
-                >
-                  +971 50 777 9163
-                </a>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-zinc-900/50 border-zinc-800">
-              <CardContent className="pt-6">
-                <MessageCircle className="h-8 w-8 text-green-400 mb-4" />
-                <h3 className="text-white font-bold text-lg mb-2">WhatsApp</h3>
-                <p className="text-zinc-400 text-sm mb-4">Quick enquiries</p>
-                <a 
-                  href="https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20would%20like%20to%20sell%20my%20Mercedes-Benz"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-green-400 font-bold text-xl hover:text-green-300 transition-colors"
-                >
-                  Start Chat →
-                </a>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Working Hours */}
-          <Card className="mt-6 bg-zinc-900/50 border-zinc-800">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-3 mb-4">
-                <Clock className="h-6 w-6 text-zinc-400" />
-                <h3 className="text-white font-bold text-lg">Working Hours</h3>
-              </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-zinc-400">Monday - Saturday</span>
-                  <span className="text-white font-medium">8:00 AM - 6:00 PM</span>
+                  <div className="feature-content">
+                    <h3>FAIR MARKET PRICE</h3>
+                    <p>Our pricing is based on real market data from thousands of listings.</p>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-zinc-400">Sunday</span>
-                  <span className="text-zinc-500">Closed</span>
+                <div className="feature-card">
+                  <div className="feature-icon">
+                    <Icon name="zap" size={22} variant="dark" />
+                  </div>
+                  <div className="feature-content">
+                    <h3>INSTANT PAYMENT</h3>
+                    <p>Get paid the same day. No waiting, no financing delays.</p>
+                  </div>
                 </div>
               </div>
-              <Separator className="my-4 bg-zinc-800" />
-              <div>
-                <p className="text-zinc-400 text-sm">
-                  <strong className="text-white">Visit Us:</strong> Al Manara Street, Al Quoz, Dubai
+              <div className="feature-column">
+                <div className="feature-card">
+                  <div className="feature-icon">
+                    <Icon name="shield-alt" size={22} variant="dark" />
+                  </div>
+                  <div className="feature-content">
+                    <h3>FREE INSPECTION</h3>
+                    <p>Our experts inspect your car at your location. No hidden fees.</p>
+                  </div>
+                </div>
+                <div className="feature-card">
+                  <div className="feature-icon">
+                    <Icon name="handshake" size={22} variant="dark" />
+                  </div>
+                  <div className="feature-content">
+                    <h3>NO HAGGLING</h3>
+                    <p>Our offer is our best price. No back-and-forth negotiation.</p>
+                  </div>
+                </div>
+              </div>
+              <div className="feature-column">
+                <div className="feature-card">
+                  <div className="feature-icon">
+                    <Icon name="car" size={22} variant="dark" />
+                  </div>
+                  <div className="feature-content">
+                    <h3>WE HANDLE EVERYTHING</h3>
+                    <p>Transfer, paperwork, and registration - we take care of it all.</p>
+                  </div>
+                </div>
+                <div className="feature-card">
+                  <div className="feature-icon">
+                    <Icon name="clock" size={22} variant="dark" />
+                  </div>
+                  <div className="feature-content">
+                    <h3>24-HOUR PROCESS</h3>
+                    <p>From valuation to payment, the entire process takes less than a day.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Contact Section */}
+        <section className="contact-section" id="contact">
+          <div className="section-header">
+            <h2>CONTACT US</h2>
+            <p>Get in touch with Dubai&apos;s trusted Mercedes-Benz buyers</p>
+          </div>
+
+          <div className="contact-grid">
+            <div className="contact-cards-grid">
+              <div className="contact-card phone-card">
+                <div className="card-icon">
+                  <Icon name="phone-alt" size={24} variant="gold" />
+                </div>
+                <h3>Call Us Today</h3>
+                <p>For immediate assistance</p>
+                <div className="card-action">
+                  <a href="tel:+971507779163" className="action-link">
+                    <Icon name="phone-alt" size={16} variant="gold" />
+                    +971 50 777 9163
+                  </a>
+                </div>
+              </div>
+
+              <div className="contact-card whatsapp-card">
+                <div className="card-icon">
+                  <Icon name="whatsapp" size={24} variant="gold" />
+                </div>
+                <h3>WhatsApp</h3>
+                <p>Quick enquiries</p>
+                <div className="card-action">
+                  <a 
+                    href="https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20would%20like%20to%20sell%20my%20Mercedes-Benz" 
+                    className="action-link" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                  >
+                    <Icon name="whatsapp" size={16} variant="gold" />
+                    Start Chat
+                  </a>
+                </div>
+              </div>
+            </div>
+
+            <div className="hours-card">
+              <div className="hours-header">
+                <Icon name="clock" size={20} variant="gold" />
+                <h3>Working Hours</h3>
+              </div>
+              <div className="hours-grid">
+                <div className="hours-item">
+                  <span className="day">Monday - Saturday</span>
+                  <span className="time">8:00 AM - 6:00 PM</span>
+                </div>
+                <div className="hours-item weekend">
+                  <span className="day">Sunday</span>
+                  <span className="time">Closed</span>
+                </div>
+              </div>
+
+              <div className="visit-info">
+                <h4>VISIT US</h4>
+                <p>
+                  Al Manara Street, Al Quoz<br />
+                  Dubai, United Arab Emirates
                 </p>
-                <p className="text-zinc-400 text-sm mt-1">
-                  <strong className="text-white">Email:</strong> sales@silberarrows.com
+                <p className="email-line">
+                  <Icon name="mail" size={14} variant="gold" />
+                  <span>sales@silberarrows.com</span>
                 </p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
-      </section>
+            </div>
+          </div>
+        </section>
+      </main>
 
       {/* Fixed Footer */}
-      <footer className="fixed bottom-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-xl border-t border-zinc-800">
-        <div className="grid grid-cols-2">
-          <a 
-            href="tel:+971507779163"
-            className="flex items-center justify-center gap-3 py-5 text-white hover:bg-zinc-900 transition-colors border-r border-zinc-800"
-          >
-            <Phone className="h-5 w-5 text-zinc-400" />
-            <span className="font-semibold">Call Us</span>
+      <footer className="fixed-footer">
+        <div className="fixed-footer-content">
+          <a href="tel:+971507779163" className="footer-action-btn">
+            <Icon name="phone" size={20} variant="gold" />
+            <span>Call Us</span>
           </a>
           <a 
-            href="https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20would%20like%20to%20sell%20my%20Mercedes-Benz"
-            target="_blank"
+            href="https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20would%20like%20to%20sell%20my%20Mercedes-Benz" 
+            className="footer-action-btn" 
+            target="_blank" 
             rel="noopener noreferrer"
-            className="flex items-center justify-center gap-3 py-5 text-white hover:bg-zinc-900 transition-colors"
           >
-            <MessageCircle className="h-5 w-5 text-green-400" />
-            <span className="font-semibold">WhatsApp</span>
+            <Icon name="whatsapp" size={20} variant="gold" />
+            <span>WhatsApp</span>
           </a>
         </div>
       </footer>
-
-      {/* Bottom Padding for Fixed Footer */}
-      <div className="h-20" />
-    </div>
+    </>
   );
 }

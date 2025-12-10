@@ -1050,35 +1050,22 @@
 }
 
 .features-columns {
-    display: flex;
-    justify-content: center;
-    gap: 30px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 25px;
+    max-width: 900px;
+    margin: 0 auto;
 }
 
-@media (max-width: 992px) {
-    .features-columns {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 20px;
-    }
-    
-    .feature-column {
-        display: contents;
-    }
-}
-
-@media (max-width: 600px) {
+@media (max-width: 768px) {
     .features-columns {
         grid-template-columns: 1fr;
+        gap: 20px;
     }
 }
 
 .feature-column {
-    display: flex;
-    flex-direction: column;
-    gap: 25px;
-    flex: 1;
-    max-width: 350px;
+    display: contents;
 }
 
 .feature-card {

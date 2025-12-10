@@ -457,112 +457,107 @@ export default function SellYourCarPage() {
           {result && (
             <div id="result" className="mt-8 space-y-6">
               {/* Main Offer Card */}
-              <Card className="bg-gradient-to-br from-zinc-900 to-zinc-950 border-zinc-700 overflow-hidden">
+              <Card className="bg-gradient-to-br from-zinc-900 to-zinc-950 border-zinc-700 overflow-hidden relative">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-green-500/10 rounded-full blur-3xl" />
+                <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-500/5 rounded-full blur-3xl" />
                 <CardContent className="pt-8 pb-8 relative">
-                  <div className="text-center mb-8">
-                    <p className="text-zinc-400 text-sm font-medium uppercase tracking-wider mb-2">
-                      Our Instant Offer
+                  {/* Vehicle Info */}
+                  <div className="text-center mb-6">
+                    <p className="text-zinc-500 text-sm mb-1">Your Vehicle</p>
+                    <p className="text-white text-xl font-bold">
+                      {result.input.year} Mercedes-Benz {result.input.model} {result.input.trim}
                     </p>
-                    <div className="text-6xl md:text-7xl font-black text-green-400 mb-2">
+                    <p className="text-zinc-400 text-sm">{formatPrice(result.input.mileage_km)} km</p>
+                  </div>
+
+                  {/* Main Offer */}
+                  <div className="text-center mb-8">
+                    <p className="text-zinc-400 text-sm font-medium uppercase tracking-wider mb-3">
+                      Your Instant Cash Offer
+                    </p>
+                    <div className="text-6xl md:text-7xl font-black text-green-400 mb-3">
                       AED {formatPrice(result.pricing.offer_price)}
                     </div>
-                    <p className="text-zinc-500">
-                      Offer Range: AED {formatPrice(result.pricing.offer_range.low)} - {formatPrice(result.pricing.offer_range.high)}
-                    </p>
-                  </div>
-
-                  {/* Market Comparison */}
-                  <div className="bg-black/30 rounded-xl p-6 mb-6">
-                    <div className="grid grid-cols-2 gap-6">
-                      <div>
-                        <p className="text-zinc-500 text-sm mb-1">Market Value</p>
-                        <p className="text-2xl font-bold text-white">
-                          AED {formatPrice(result.pricing.market_value)}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-zinc-500 text-sm mb-1">Our Margin</p>
-                        <p className="text-2xl font-bold text-blue-400">
-                          {result.pricing.margin_percent}% below market
-                        </p>
-                      </div>
+                    <div className="flex items-center justify-center gap-2 text-zinc-400 text-sm">
+                      <Clock className="h-4 w-4" />
+                      <span>Valid for 7 days</span>
                     </div>
                   </div>
 
-                  {/* Badges */}
+                  {/* Trust Badges */}
                   <div className="flex justify-center gap-3 flex-wrap mb-8">
-                    <Badge 
-                      variant="outline" 
-                      className={`px-4 py-2 ${
-                        result.pricing.confidence === 'high' 
-                          ? 'bg-green-500/10 border-green-500/30 text-green-400' 
-                          : result.pricing.confidence === 'medium'
-                            ? 'bg-yellow-500/10 border-yellow-500/30 text-yellow-400'
-                            : 'bg-orange-500/10 border-orange-500/30 text-orange-400'
-                      }`}
-                    >
+                    <Badge variant="outline" className="px-4 py-2 bg-green-500/10 border-green-500/30 text-green-400">
                       <CheckCircle2 className="h-4 w-4 mr-2" />
-                      {result.pricing.confidence.charAt(0).toUpperCase() + result.pricing.confidence.slice(1)} Confidence
+                      Guaranteed Price
                     </Badge>
-                    <Badge 
-                      variant="outline"
-                      className={`px-4 py-2 ${
-                        result.pricing.specs_used === 'GCC' 
-                          ? 'bg-blue-500/10 border-blue-500/30 text-blue-400' 
-                          : 'bg-purple-500/10 border-purple-500/30 text-purple-400'
-                      }`}
-                    >
-                      {result.pricing.specs_used === 'GCC' ? '🇦🇪' : '🌍'} {result.pricing.specs_used}
+                    <Badge variant="outline" className="px-4 py-2 bg-blue-500/10 border-blue-500/30 text-blue-400">
+                      <Shield className="h-4 w-4 mr-2" />
+                      No Hidden Fees
                     </Badge>
                   </div>
 
-                  {/* Stats Grid */}
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                    <div className="bg-black/30 rounded-lg p-4 text-center">
-                      <p className="text-2xl font-bold text-white">{result.pricing.comparable_listings}</p>
-                      <p className="text-xs text-zinc-500">Listings Analyzed</p>
-                    </div>
-                    <div className="bg-black/30 rounded-lg p-4 text-center">
-                      <p className="text-2xl font-bold text-white">AED {formatPrice(result.market_data.avg_market_price)}</p>
-                      <p className="text-xs text-zinc-500">Market Average</p>
-                    </div>
-                    <div className="bg-black/30 rounded-lg p-4 text-center">
-                      <p className="text-2xl font-bold text-white">AED {formatPrice(result.market_data.min_price)}</p>
-                      <p className="text-xs text-zinc-500">Lowest Listed</p>
-                    </div>
-                    <div className="bg-black/30 rounded-lg p-4 text-center">
-                      <p className="text-2xl font-bold text-white">AED {formatPrice(result.market_data.max_price)}</p>
-                      <p className="text-xs text-zinc-500">Highest Listed</p>
+                  {/* What's Included */}
+                  <div className="bg-black/30 rounded-xl p-6 mb-8">
+                    <p className="text-white font-semibold text-center mb-4">What&apos;s Included</p>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="text-center">
+                        <div className="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center mx-auto mb-2">
+                          <Zap className="h-6 w-6 text-yellow-400" />
+                        </div>
+                        <p className="text-white text-sm font-medium">Same Day</p>
+                        <p className="text-zinc-500 text-xs">Payment</p>
+                      </div>
+                      <div className="text-center">
+                        <div className="w-12 h-12 rounded-full bg-blue-500/20 flex items-center justify-center mx-auto mb-2">
+                          <Shield className="h-6 w-6 text-blue-400" />
+                        </div>
+                        <p className="text-white text-sm font-medium">Free</p>
+                        <p className="text-zinc-500 text-xs">Inspection</p>
+                      </div>
+                      <div className="text-center">
+                        <div className="w-12 h-12 rounded-full bg-green-500/20 flex items-center justify-center mx-auto mb-2">
+                          <Car className="h-6 w-6 text-green-400" />
+                        </div>
+                        <p className="text-white text-sm font-medium">We Handle</p>
+                        <p className="text-zinc-500 text-xs">Transfer</p>
+                      </div>
+                      <div className="text-center">
+                        <div className="w-12 h-12 rounded-full bg-purple-500/20 flex items-center justify-center mx-auto mb-2">
+                          <Users className="h-6 w-6 text-purple-400" />
+                        </div>
+                        <p className="text-white text-sm font-medium">No</p>
+                        <p className="text-zinc-500 text-xs">Haggling</p>
+                      </div>
                     </div>
                   </div>
 
-                  {/* Benefits */}
-                  <div className="grid grid-cols-3 gap-3 mb-8">
-                    <div className="bg-black/30 rounded-lg p-4 text-center">
-                      <Zap className="h-6 w-6 text-yellow-400 mx-auto mb-2" />
-                      <p className="text-xs text-zinc-400">Instant Payment</p>
+                  {/* Trust Stats */}
+                  <div className="flex justify-center gap-8 mb-8 text-center">
+                    <div>
+                      <p className="text-2xl font-bold text-white">500+</p>
+                      <p className="text-xs text-zinc-500">Cars Purchased</p>
                     </div>
-                    <div className="bg-black/30 rounded-lg p-4 text-center">
-                      <Shield className="h-6 w-6 text-blue-400 mx-auto mb-2" />
-                      <p className="text-xs text-zinc-400">Free Inspection</p>
+                    <div className="w-px bg-zinc-700" />
+                    <div>
+                      <p className="text-2xl font-bold text-white">Since 2020</p>
+                      <p className="text-xs text-zinc-500">Trusted in Dubai</p>
                     </div>
-                    <div className="bg-black/30 rounded-lg p-4 text-center">
-                      <Car className="h-6 w-6 text-green-400 mx-auto mb-2" />
-                      <p className="text-xs text-zinc-400">We Handle Transfer</p>
+                    <div className="w-px bg-zinc-700" />
+                    <div>
+                      <p className="text-2xl font-bold text-white">4.9★</p>
+                      <p className="text-xs text-zinc-500">Customer Rating</p>
                     </div>
                   </div>
 
-                  {/* CTA */}
-                  <div className="text-center">
-                    <p className="text-zinc-400 mb-4">Ready to sell? Get your cash today!</p>
+                  {/* CTA Buttons */}
+                  <div className="space-y-3">
                     <Button
                       size="lg"
                       asChild
-                      className="bg-green-600 hover:bg-green-700 text-white font-bold h-14 px-8 text-lg"
+                      className="w-full bg-green-600 hover:bg-green-700 text-white font-bold h-14 text-lg"
                     >
                       <a
-                        href={`https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20would%20like%20to%20sell%20my%20${encodeURIComponent(result.input.year + ' Mercedes-Benz ' + result.input.model)}%20with%20${encodeURIComponent(formatPrice(result.input.mileage_km))}km.%20Your%20offer%20was%20AED%20${encodeURIComponent(formatPrice(result.pricing.offer_price))}`}
+                        href={`https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20would%20like%20to%20sell%20my%20${encodeURIComponent(result.input.year + ' Mercedes-Benz ' + result.input.model + ' ' + (result.input.trim || ''))}%20with%20${encodeURIComponent(formatPrice(result.input.mileage_km))}km.%20Your%20offer%20was%20AED%20${encodeURIComponent(formatPrice(result.pricing.offer_price))}.%20Please%20arrange%20inspection.`}
                         target="_blank"
                         rel="noopener noreferrer"
                       >
@@ -570,7 +565,24 @@ export default function SellYourCarPage() {
                         Accept Offer on WhatsApp
                       </a>
                     </Button>
+                    <Button
+                      size="lg"
+                      variant="outline"
+                      asChild
+                      className="w-full border-zinc-600 text-white hover:bg-zinc-800 h-12"
+                    >
+                      <a href="tel:+971561742746">
+                        <Phone className="mr-2 h-5 w-5" />
+                        Call Us: +971 56 174 2746
+                      </a>
+                    </Button>
                   </div>
+
+                  {/* Fine Print */}
+                  <p className="text-zinc-600 text-xs text-center mt-6">
+                    *Final offer subject to vehicle inspection. Offer valid for vehicles in good condition 
+                    with clear title and no outstanding finance.
+                  </p>
                 </CardContent>
               </Card>
             </div>

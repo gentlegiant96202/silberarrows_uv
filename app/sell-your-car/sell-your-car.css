@@ -599,10 +599,16 @@
 
 /* Wizard Container - Fixed Size for No Layout Shifts */
 .wizard-container {
-    max-width: 600px;
+    max-width: 720px;
     margin: 0 auto;
     position: relative;
     z-index: 1;
+}
+
+@media (min-width: 1200px) {
+    .wizard-container {
+        max-width: 800px;
+    }
 }
 
 .wizard-card {
@@ -1855,9 +1861,9 @@
     background: rgba(255, 255, 255, 0.02) !important;
     border: 1px solid rgba(255, 255, 255, 0.1) !important;
     border-radius: 10px !important;
-    padding: 16px;
+    padding: 20px;
     flex: 1;
-    max-width: 280px;
+    max-width: 340px;
 }
 
 .result-content .option-header {

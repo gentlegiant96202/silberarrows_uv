@@ -399,14 +399,15 @@
 
 @media (max-width: 768px) {
     .hero-title {
-        font-size: 48px;
+        font-size: 64px;
         line-height: 0.9;
+        text-align: center;
     }
 }
 
 @media (max-width: 480px) {
     .hero-title {
-        font-size: 36px;
+        font-size: 52px;
     }
 }
 

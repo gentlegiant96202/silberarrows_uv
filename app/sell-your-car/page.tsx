@@ -686,7 +686,7 @@ export default function SellYourCarPage() {
                         </div>
                         <div className="benefit-item">
                           <Icon name="check" size={14} variant="gold" />
-                          <span>Keep driving until sold</span>
+                          <span>Showroom display</span>
                         </div>
                       </div>
 

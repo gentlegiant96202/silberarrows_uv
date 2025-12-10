@@ -130,11 +130,6 @@ export default function SellYourCarPage() {
     }
     
     setFormStep(2);
-    
-    // Scroll to form
-    setTimeout(() => {
-      document.getElementById('calculator')?.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -174,10 +169,6 @@ export default function SellYourCarPage() {
       await saveLead(data);
       
       setResult(data);
-      
-      setTimeout(() => {
-        document.getElementById('result')?.scrollIntoView({ behavior: 'smooth' });
-      }, 100);
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
     } finally {

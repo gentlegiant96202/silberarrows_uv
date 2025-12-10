@@ -162,9 +162,42 @@
     transform: rotate(-45deg) translate(7px, -7px);
 }
 
+/* Mobile Header Actions */
+.mobile-header-actions {
+    display: none;
+    align-items: center;
+    gap: 12px;
+}
+
+.mobile-cta-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    background: var(--gold-gradient);
+    border-radius: 6px;
+    color: var(--dark);
+    text-decoration: none;
+    font-family: var(--impact-font);
+    font-size: 12px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+}
+
+.mobile-cta-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(156, 163, 175, 0.3);
+}
+
 @media (max-width: 768px) {
     .mobile-menu-toggle {
         display: block;
+    }
+    
+    .mobile-header-actions {
+        display: flex;
     }
 }
 

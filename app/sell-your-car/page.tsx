@@ -276,18 +276,30 @@ export default function SellYourCarPage() {
               </div>
             </div>
             
-            {/* Mobile Hamburger Menu */}
-            <button 
-              className="mobile-menu-toggle"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              aria-label="Toggle menu"
-            >
-              <span className={`hamburger ${mobileMenuOpen ? 'open' : ''}`}>
-                <span></span>
-                <span></span>
-                <span></span>
-              </span>
-            </button>
+            {/* Mobile Actions */}
+            <div className="mobile-header-actions">
+              <a 
+                href="#calculator" 
+                className="mobile-cta-btn"
+                onClick={(e) => {
+                  e.preventDefault();
+                  document.getElementById('calculator')?.scrollIntoView({ behavior: 'smooth' });
+                }}
+              >
+                GET OFFER
+              </a>
+              <button 
+                className="mobile-menu-toggle"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+                aria-label="Toggle menu"
+              >
+                <span className={`hamburger ${mobileMenuOpen ? 'open' : ''}`}>
+                  <span></span>
+                  <span></span>
+                  <span></span>
+                </span>
+              </button>
+            </div>
           </div>
         </header>
 

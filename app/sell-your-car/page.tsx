@@ -32,6 +32,11 @@ interface PriceEstimate {
     mileage_adjustment: number;
     specs_used: string;
   };
+  consignment: {
+    customer_receives: number;
+    sale_price: number;
+    commission_percent: number;
+  };
   market_data: {
     avg_market_price: number;
     min_price: number;
@@ -67,6 +72,7 @@ export default function SellYourCarPage() {
   const [result, setResult] = useState<PriceEstimate | null>(null);
   const [error, setError] = useState('');
   const [step1Error, setStep1Error] = useState('');
+  const [selectedOption, setSelectedOption] = useState<'cash' | 'consignment'>('cash');
 
   useEffect(() => {
     fetchModels();
@@ -195,7 +201,9 @@ export default function SellYourCarPage() {
           offer_price: priceData?.pricing?.offer_price || null,
           market_value: priceData?.pricing?.market_value || null,
           confidence: priceData?.pricing?.confidence || null,
-          specs_used: priceData?.pricing?.specs_used || null
+          specs_used: priceData?.pricing?.specs_used || null,
+          consignment_price: priceData?.consignment?.customer_receives || null,
+          consignment_commission: priceData?.consignment?.commission_percent || null
         })
       });
     } catch (err) {
@@ -581,118 +589,184 @@ export default function SellYourCarPage() {
             {/* Result Section */}
             {result && (
               <div id="result" className="result-container">
-                <Card className="result-card">
-                  <CardContent className="pt-8 pb-8">
-                    {/* Vehicle Info */}
-                    <div className="result-vehicle">
-                      <p className="result-vehicle-label">Your Vehicle</p>
-                      <p className="result-vehicle-name">
-                        {result.input.year} Mercedes-Benz {result.input.model} {result.input.trim}
-                      </p>
-                      <p className="result-vehicle-mileage">{formatPrice(result.input.mileage_km)} km</p>
-                    </div>
+                {/* Vehicle Info Header */}
+                <div className="result-vehicle-header">
+                  <p className="result-vehicle-label">Your Vehicle</p>
+                  <p className="result-vehicle-name">
+                    {result.input.year} Mercedes-Benz {result.input.model} {result.input.trim}
+                  </p>
+                  <p className="result-vehicle-mileage">{formatPrice(result.input.mileage_km)} km</p>
+                </div>
 
-                    {/* Main Offer */}
-                    <div className="result-offer">
-                      <p className="result-offer-label">YOUR INSTANT CASH OFFER</p>
-                      <div className="result-offer-price">
-                        AED {formatPrice(result.pricing.offer_price)}
-                      </div>
-                      <div className="result-offer-validity">
-                        <Icon name="clock" size={14} variant="silver" />
-                        <span>Valid for 7 days</span>
-                      </div>
-                    </div>
+                {/* Option Toggle */}
+                <div className="option-toggle">
+                  <button 
+                    className={`option-toggle-btn ${selectedOption === 'cash' ? 'active' : ''}`}
+                    onClick={() => setSelectedOption('cash')}
+                  >
+                    <Icon name="zap" size={18} variant={selectedOption === 'cash' ? 'dark' : 'silver'} />
+                    <span>Instant Cash</span>
+                  </button>
+                  <button 
+                    className={`option-toggle-btn ${selectedOption === 'consignment' ? 'active' : ''}`}
+                    onClick={() => setSelectedOption('consignment')}
+                  >
+                    <Icon name="handshake" size={18} variant={selectedOption === 'consignment' ? 'dark' : 'silver'} />
+                    <span>Consignment</span>
+                  </button>
+                </div>
 
-                    {/* Trust Badges */}
-                    <div className="result-badges">
-                      <div className="result-badge">
-                        <Icon name="car" size={14} variant="silver" />
-                        <span>Subject to Inspection</span>
+                {/* Cash Option */}
+                {selectedOption === 'cash' && (
+                  <Card className="result-card cash-card">
+                    <CardContent className="pt-8 pb-8">
+                      <div className="option-badge cash">
+                        <Icon name="zap" size={14} variant="dark" />
+                        <span>INSTANT CASH</span>
                       </div>
-                      <div className="result-badge">
-                        <Icon name="shield-alt" size={14} variant="silver" />
-                        <span>No Hidden Fees</span>
-                      </div>
-                    </div>
 
-                    {/* What's Included */}
-                    <div className="result-included">
-                      <p className="result-included-title">What&apos;s Included</p>
-                      <div className="result-included-grid">
-                        <div className="result-included-item">
-                          <div className="result-included-icon yellow">
-                            <Icon name="zap" size={20} variant="dark" />
-                          </div>
-                          <p className="result-included-name">Same Day</p>
-                          <p className="result-included-desc">Payment</p>
+                      <div className="result-offer">
+                        <p className="result-offer-label">WE PAY YOU TODAY</p>
+                        <div className="result-offer-price cash">
+                          AED {formatPrice(result.pricing.offer_price)}
                         </div>
-                        <div className="result-included-item">
-                          <div className="result-included-icon blue">
-                            <Icon name="shield-alt" size={20} variant="dark" />
-                          </div>
-                          <p className="result-included-name">Free</p>
-                          <p className="result-included-desc">Inspection</p>
-                        </div>
-                        <div className="result-included-item">
-                          <div className="result-included-icon green">
-                            <Icon name="car" size={20} variant="dark" />
-                          </div>
-                          <p className="result-included-name">We Handle</p>
-                          <p className="result-included-desc">Transfer</p>
-                        </div>
-                        <div className="result-included-item">
-                          <div className="result-included-icon purple">
-                            <Icon name="handshake" size={20} variant="dark" />
-                          </div>
-                          <p className="result-included-name">No</p>
-                          <p className="result-included-desc">Haggling</p>
+                        <div className="result-offer-validity">
+                          <Icon name="clock" size={14} variant="silver" />
+                          <span>Valid for 7 days</span>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Trust Stats */}
-                    <div className="result-stats">
-                      <div className="result-stat">
-                        <p className="result-stat-value">500+</p>
-                        <p className="result-stat-label">Cars Purchased</p>
+                      <div className="result-benefits">
+                        <div className="benefit-item">
+                          <Icon name="check-circle" size={18} variant="gold" />
+                          <span>Same day payment</span>
+                        </div>
+                        <div className="benefit-item">
+                          <Icon name="check-circle" size={18} variant="gold" />
+                          <span>We handle all paperwork</span>
+                        </div>
+                        <div className="benefit-item">
+                          <Icon name="check-circle" size={18} variant="gold" />
+                          <span>Free inspection at your location</span>
+                        </div>
+                        <div className="benefit-item">
+                          <Icon name="check-circle" size={18} variant="gold" />
+                          <span>No haggling - fixed price</span>
+                        </div>
                       </div>
-                      <div className="result-stat-divider"></div>
-                      <div className="result-stat">
-                        <p className="result-stat-value">Since 2012</p>
-                        <p className="result-stat-label">Trusted in Dubai</p>
-                      </div>
-                      <div className="result-stat-divider"></div>
-                      <div className="result-stat">
-                        <p className="result-stat-value">4.9★</p>
-                        <p className="result-stat-label">Rating</p>
-                      </div>
-                    </div>
 
-                    {/* CTA Buttons */}
-                    <div className="result-cta">
-                      <a
-                        href={`https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20am%20${encodeURIComponent(customerName)}%20and%20I%20would%20like%20to%20sell%20my%20${encodeURIComponent(result.input.year + ' Mercedes-Benz ' + result.input.model + ' ' + (result.input.trim || ''))}%20with%20${encodeURIComponent(formatPrice(result.input.mileage_km))}km.%20Your%20offer%20was%20AED%20${encodeURIComponent(formatPrice(result.pricing.offer_price))}.%20My%20number%20is%20${encodeURIComponent(customerPhone)}.%20Please%20arrange%20inspection.`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="result-cta-primary"
-                      >
-                        <Icon name="whatsapp" size={20} variant="dark" />
-                        <span>Accept Offer on WhatsApp</span>
-                      </a>
-                      <a href="tel:+971507779163" className="result-cta-secondary">
-                        <Icon name="phone" size={18} variant="gold" />
-                        <span>Call Us: +971 50 777 9163</span>
-                      </a>
-                    </div>
+                      <div className="result-cta">
+                        <a
+                          href={`https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20am%20${encodeURIComponent(customerName)}%20and%20I%20would%20like%20the%20CASH%20offer%20for%20my%20${encodeURIComponent(result.input.year + ' Mercedes-Benz ' + result.input.model + ' ' + (result.input.trim || ''))}%20with%20${encodeURIComponent(formatPrice(result.input.mileage_km))}km.%20Your%20offer%20was%20AED%20${encodeURIComponent(formatPrice(result.pricing.offer_price))}.%20My%20number%20is%20${encodeURIComponent(customerPhone)}.%20Please%20arrange%20inspection.`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="result-cta-primary"
+                        >
+                          <Icon name="whatsapp" size={20} variant="dark" />
+                          <span>Accept Cash Offer</span>
+                        </a>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
 
-                    {/* Fine Print */}
-                    <p className="result-disclaimer">
-                      *Final offer subject to vehicle inspection. Offer valid for vehicles in good condition 
-                      with clear title and no outstanding finance.
-                    </p>
-                  </CardContent>
-                </Card>
+                {/* Consignment Option */}
+                {selectedOption === 'consignment' && (
+                  <Card className="result-card consignment-card">
+                    <CardContent className="pt-8 pb-8">
+                      <div className="option-badge consignment">
+                        <Icon name="handshake" size={14} variant="dark" />
+                        <span>CONSIGNMENT</span>
+                      </div>
+
+                      <div className="result-offer">
+                        <p className="result-offer-label">YOU RECEIVE WHEN SOLD</p>
+                        <div className="result-offer-price consignment">
+                          AED {formatPrice(result.consignment.customer_receives)}
+                        </div>
+                        <p className="consignment-extra">
+                          +AED {formatPrice(result.consignment.customer_receives - result.pricing.offer_price)} more than cash
+                        </p>
+                      </div>
+
+                      <div className="consignment-breakdown">
+                        <div className="breakdown-row">
+                          <span>Expected Sale Price</span>
+                          <span>AED {formatPrice(result.consignment.sale_price)}</span>
+                        </div>
+                        <div className="breakdown-row">
+                          <span>Our Commission ({result.consignment.commission_percent}%)</span>
+                          <span>-AED {formatPrice(result.consignment.sale_price - result.consignment.customer_receives)}</span>
+                        </div>
+                        <div className="breakdown-row total">
+                          <span>You Receive</span>
+                          <span>AED {formatPrice(result.consignment.customer_receives)}</span>
+                        </div>
+                      </div>
+
+                      <div className="result-benefits">
+                        <div className="benefit-item">
+                          <Icon name="check-circle" size={18} variant="gold" />
+                          <span>Higher payout than cash</span>
+                        </div>
+                        <div className="benefit-item">
+                          <Icon name="check-circle" size={18} variant="gold" />
+                          <span>We market & sell your car</span>
+                        </div>
+                        <div className="benefit-item">
+                          <Icon name="check-circle" size={18} variant="gold" />
+                          <span>Professional showroom display</span>
+                        </div>
+                        <div className="benefit-item">
+                          <Icon name="check-circle" size={18} variant="gold" />
+                          <span>You keep driving until sold</span>
+                        </div>
+                      </div>
+
+                      <div className="result-cta">
+                        <a
+                          href={`https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20am%20${encodeURIComponent(customerName)}%20and%20I%20am%20interested%20in%20CONSIGNMENT%20for%20my%20${encodeURIComponent(result.input.year + ' Mercedes-Benz ' + result.input.model + ' ' + (result.input.trim || ''))}%20with%20${encodeURIComponent(formatPrice(result.input.mileage_km))}km.%20Expected%20payout%20AED%20${encodeURIComponent(formatPrice(result.consignment.customer_receives))}.%20My%20number%20is%20${encodeURIComponent(customerPhone)}.%20Please%20contact%20me.`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="result-cta-primary consignment"
+                        >
+                          <Icon name="whatsapp" size={20} variant="dark" />
+                          <span>Discuss Consignment</span>
+                        </a>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+
+                {/* Trust Stats */}
+                <div className="result-stats">
+                  <div className="result-stat">
+                    <p className="result-stat-value">500+</p>
+                    <p className="result-stat-label">Cars Sold</p>
+                  </div>
+                  <div className="result-stat-divider"></div>
+                  <div className="result-stat">
+                    <p className="result-stat-value">Since 2012</p>
+                    <p className="result-stat-label">Trusted in Dubai</p>
+                  </div>
+                  <div className="result-stat-divider"></div>
+                  <div className="result-stat">
+                    <p className="result-stat-value">4.9★</p>
+                    <p className="result-stat-label">Rating</p>
+                  </div>
+                </div>
+
+                {/* Call CTA */}
+                <a href="tel:+971507779163" className="result-cta-secondary standalone">
+                  <Icon name="phone" size={18} variant="gold" />
+                  <span>Questions? Call +971 50 777 9163</span>
+                </a>
+
+                {/* Fine Print */}
+                <p className="result-disclaimer">
+                  *Cash offer subject to vehicle inspection. Consignment payout depends on final sale price.
+                  Both options available for vehicles in good condition with clear title.
+                </p>
               </div>
             )}
           </div>

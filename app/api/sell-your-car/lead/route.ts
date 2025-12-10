@@ -15,7 +15,9 @@ export async function POST(request: NextRequest) {
       offer_price,
       market_value,
       confidence,
-      specs_used
+      specs_used,
+      consignment_price,
+      consignment_commission
     } = body;
 
     // Validate required fields
@@ -40,6 +42,8 @@ export async function POST(request: NextRequest) {
         market_value: market_value || null,
         confidence: confidence || null,
         specs_used: specs_used || null,
+        consignment_price: consignment_price || null,
+        consignment_commission: consignment_commission || null,
         status: 'new',
         source: 'website',
         created_at: new Date().toISOString()

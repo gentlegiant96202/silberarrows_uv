@@ -245,6 +245,11 @@ export default function SellYourCarPage() {
     return years;
   };
 
+  // Format model name for display (remove "-Class" suffix)
+  const formatModelName = (model: string) => {
+    return model.replace(/-Class$/i, '').replace(/ Class$/i, '');
+  };
+
   return (
     <>
       {/* Header */}
@@ -470,7 +475,7 @@ export default function SellYourCarPage() {
                         <SelectContent className="select-content">
                           {models.map(model => (
                             <SelectItem key={model} value={model} className="select-item">
-                              {model}
+                              {formatModelName(model)}
                             </SelectItem>
                           ))}
                         </SelectContent>

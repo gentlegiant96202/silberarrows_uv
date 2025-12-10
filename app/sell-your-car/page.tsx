@@ -291,7 +291,7 @@ export default function SellYourCarPage() {
 
             <div className="year-badge">
               <Icon name="medal" size={20} />
-              Dubai&apos;s Trusted Mercedes-Benz Buyers Since 2020
+              Dubai&apos;s Trusted Mercedes-Benz Buyers Since 2012
             </div>
           </div>
         </section>
@@ -514,7 +514,7 @@ export default function SellYourCarPage() {
                       </div>
                       <div className="result-stat-divider"></div>
                       <div className="result-stat">
-                        <p className="result-stat-value">Since 2020</p>
+                        <p className="result-stat-value">Since 2012</p>
                         <p className="result-stat-label">Trusted in Dubai</p>
                       </div>
                       <div className="result-stat-divider"></div>

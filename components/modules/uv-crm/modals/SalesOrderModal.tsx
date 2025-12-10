@@ -146,9 +146,22 @@ interface Payment {
   notes?: string;
   created_at: string;
   pdf_url?: string;
-  // Calculated fields from view
+  // Calculated fields
   allocated_amount?: number;
-  unallocated_amount?: number;
+  refunded_amount?: number;
+  available_amount?: number;  // amount - allocated - refunded (can be allocated OR refunded)
+  unallocated_amount?: number;  // DEPRECATED: use available_amount instead
+}
+
+interface RefundAllocation {
+  id: string;
+  refund_id: string;
+  payment_id: string;
+  amount: number;
+  created_at: string;
+  // Joined fields
+  refund_number?: string;
+  payment_number?: string;
 }
 
 interface PaymentAllocation {
@@ -354,7 +367,7 @@ export default function SalesOrderModal({
   // Expanded invoice state
   const [expandedInvoiceId, setExpandedInvoiceId] = useState<string | null>(null);
   const [newCreditNote, setNewCreditNote] = useState({ amount: 0, reason: '' });
-  const [newRefund, setNewRefund] = useState({ amount: 0, reason: '', method: 'bank_transfer', reference: '', invoiceId: '' });
+  const [newRefund, setNewRefund] = useState({ amount: 0, reason: '', method: 'bank_transfer', reference: '', paymentId: '' });
   
   // SOA state
   const [soaData, setSoaData] = useState<any[]>([]);
@@ -1166,11 +1179,14 @@ export default function SalesOrderModal({
         throw paymentsError;
       }
       
-      // Load allocations for calculating allocated/unallocated amounts
+      // Load allocations for calculating allocated amounts
       let allocationsMap: Record<string, number> = {};
+      // Load refund allocations for calculating refunded amounts
+      let refundedMap: Record<string, number> = {};
       const paymentIds = paymentsData?.map(p => p.id) || [];
       
       if (paymentIds.length > 0) {
+        // Load payment allocations (to invoices)
         const { data: allocData, error: allocError } = await supabase
           .from('uv_payment_allocations')
           .select(`
@@ -1197,17 +1213,35 @@ export default function SalesOrderModal({
             invoice_number: a.uv_invoices?.invoice_number,
           })));
         }
+        
+        // Load refund allocations (from refunds)
+        const { data: refundAllocData, error: refundAllocError } = await supabase
+          .from('uv_refund_allocations')
+          .select('*')
+          .in('payment_id', paymentIds);
+        
+        if (!refundAllocError && refundAllocData) {
+          // Calculate total refunded per payment
+          refundAllocData.forEach(ra => {
+            const amount = parseFloat(ra.amount) || 0;
+            refundedMap[ra.payment_id] = (refundedMap[ra.payment_id] || 0) + amount;
+          });
+        }
       }
       
       if (paymentsData) {
         setPayments(paymentsData.map(p => {
           const amount = parseFloat(p.amount) || 0;
           const allocatedAmount = allocationsMap[p.id] || 0;
+          const refundedAmount = refundedMap[p.id] || 0;
+          const availableAmount = amount - allocatedAmount - refundedAmount;
           return {
             ...p,
             amount,
             allocated_amount: allocatedAmount,
-            unallocated_amount: amount - allocatedAmount,
+            refunded_amount: refundedAmount,
+            available_amount: availableAmount,
+            unallocated_amount: availableAmount, // Keep for backward compatibility
           };
         }));
       }
@@ -1410,6 +1444,17 @@ export default function SalesOrderModal({
       return;
     }
     
+    // Validate credit note amount doesn't exceed invoice balance
+    const targetInvoice = invoices.find(inv => inv.id === invoiceId);
+    if (!targetInvoice) {
+      alert('Invoice not found');
+      return;
+    }
+    if (newCreditNote.amount > targetInvoice.balance_due) {
+      alert(`Credit note amount cannot exceed invoice balance (AED ${formatCurrency(targetInvoice.balance_due)})`);
+      return;
+    }
+    
     setSavingAdjustment(true);
     try {
       const { data, error } = await supabase
@@ -1447,10 +1492,10 @@ export default function SalesOrderModal({
     }
   };
 
-  // Add refund
+  // Add refund (linked to a specific payment)
   const handleAddRefund = async () => {
-    if (!newRefund.invoiceId) {
-      alert('Please select an invoice');
+    if (!newRefund.paymentId) {
+      alert('Please select a payment to refund from');
       return;
     }
     if (newRefund.amount <= 0) {
@@ -1462,14 +1507,28 @@ export default function SalesOrderModal({
       return;
     }
     
+    // Find the selected payment and validate amount
+    const selectedPayment = payments.find(p => p.id === newRefund.paymentId);
+    if (!selectedPayment) {
+      alert('Selected payment not found');
+      return;
+    }
+    
+    const paymentAvailable = selectedPayment.available_amount || 0;
+    if (newRefund.amount > paymentAvailable) {
+      alert(`Refund amount cannot exceed payment's available balance (AED ${formatCurrency(paymentAvailable)})`);
+      return;
+    }
+    
     setSavingAdjustment(true);
     try {
-      const { data, error } = await supabase
+      // Step 1: Create the refund record
+      const { data: refundData, error: refundError } = await supabase
         .from('uv_adjustments')
         .insert({
           adjustment_type: 'refund',
           lead_id: lead.id,
-          invoice_id: newRefund.invoiceId,
+          invoice_id: null, // No longer linking to invoice
           amount: newRefund.amount,
           reason: newRefund.reason,
           refund_method: newRefund.method,
@@ -1479,20 +1538,37 @@ export default function SalesOrderModal({
         .select()
         .single();
       
-      if (error) throw error;
+      if (refundError) throw refundError;
+      
+      // Step 2: Create the refund allocation (link refund to payment)
+      const { error: allocError } = await supabase
+        .from('uv_refund_allocations')
+        .insert({
+          refund_id: refundData.id,
+          payment_id: newRefund.paymentId,
+          amount: newRefund.amount,
+          created_by: user?.id,
+        });
+      
+      if (allocError) {
+        console.error('Error creating refund allocation:', allocError);
+        // Don't throw - refund was created, just allocation failed
+        alert(`Refund ${refundData.adjustment_number} created but failed to link to payment. Please contact support.`);
+      }
       
       // Reset form
-      setNewRefund({ amount: 0, reason: '', method: 'bank_transfer', reference: '', invoiceId: '' });
+      setNewRefund({ amount: 0, reason: '', method: 'bank_transfer', reference: '', paymentId: '' });
       setShowRefundForm(false);
       
       // Reload data and SOA balance
       await loadAdjustments();
+      await loadPayments(); // Reload to update available_amount
       await loadSoaBalance();
       if (existingSalesOrder) {
         await loadInvoices(existingSalesOrder.id);
       }
       
-      alert(`Refund ${data.adjustment_number} created successfully!`);
+      alert(`Refund ${refundData.adjustment_number} created and linked to ${selectedPayment.payment_number}!`);
     } catch (error: any) {
       console.error('Error creating refund:', error);
       alert('Error creating refund: ' + error.message);
@@ -2866,7 +2942,24 @@ export default function SalesOrderModal({
                                       </button>
                                       <div className="text-right">
                                         <p className="text-sm font-semibold text-white">+{formatCurrency(payment.amount)}</p>
-                                        {isUnallocated && <p className="text-[10px] text-amber-400">{formatCurrency(payment.unallocated_amount || 0)} unallocated</p>}
+                                        {/* Show breakdown: allocated / refunded / available */}
+                                        <div className="flex items-center gap-2 text-[10px]">
+                                          {(payment.allocated_amount || 0) > 0 && (
+                                            <span className="text-green-400">{formatCurrency(payment.allocated_amount || 0)} allocated</span>
+                                          )}
+                                          {(payment.refunded_amount || 0) > 0 && (
+                                            <span className="text-orange-400">{formatCurrency(payment.refunded_amount || 0)} refunded</span>
+                                          )}
+                                          {(payment.available_amount || 0) > 0 && (
+                                            <span className="text-amber-400">{formatCurrency(payment.available_amount || 0)} available</span>
+                                          )}
+                                          {(payment.available_amount || 0) === 0 && (payment.allocated_amount || 0) > 0 && (payment.refunded_amount || 0) === 0 && (
+                                            <span className="text-green-400/60">fully allocated</span>
+                                          )}
+                                          {(payment.available_amount || 0) === 0 && (payment.refunded_amount || 0) > 0 && (payment.allocated_amount || 0) === 0 && (
+                                            <span className="text-orange-400/60">fully refunded</span>
+                                          )}
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
@@ -2884,13 +2977,13 @@ export default function SalesOrderModal({
                                       ))}
                                     </div>
                                   )}
-                                  {/* Allocate */}
-                                  {isUnallocated && invoices.some(inv => inv.status !== 'reversed' && inv.balance_due > 0) && (
+                                  {/* Allocate - show if payment has available amount */}
+                                  {(payment.available_amount || 0) > 0 && invoices.some(inv => inv.status !== 'reversed' && inv.balance_due > 0) && (
                                     <div className="mt-2 pt-2 border-t border-white/5">
                                       {allocatingPayment === payment.id ? (
                                         <div className="space-y-2">
                                           {invoices.filter(inv => inv.status !== 'reversed' && inv.balance_due > 0).map(inv => {
-                                            const maxAmount = Math.min(payment.unallocated_amount || 0, inv.balance_due);
+                                            const maxAmount = Math.min(payment.available_amount || 0, inv.balance_due);
                                             const isSelected = allocationInvoiceId === inv.id;
                                             return (
                                               <div key={inv.id} className={`p-2 rounded text-xs ${isSelected ? 'bg-white/10' : ''}`}>
@@ -3030,7 +3123,7 @@ export default function SalesOrderModal({
                             {!showRefundForm && (
                               <button
                                 onClick={() => setShowRefundForm(true)}
-                                disabled={!invoices.some(i => i.status !== 'reversed' && i.paid_amount > 0)}
+                                disabled={!payments.some(p => (p.available_amount || 0) > 0)}
                                 className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-white/50 hover:text-white/70 border border-dashed border-white/10 hover:border-white/20 rounded-lg transition-all disabled:opacity-30"
                               >
                                 <Plus className="w-3 h-3" />
@@ -3042,14 +3135,36 @@ export default function SalesOrderModal({
                             {showRefundForm && (
                               <div className="bg-black/20 border border-white/10 rounded-lg p-3 space-y-3">
                                 <div className="grid grid-cols-3 gap-3">
-                                  <Field label="Invoice">
-                                    <select value={newRefund.invoiceId} onChange={(e) => setNewRefund(prev => ({ ...prev, invoiceId: e.target.value }))} className={selectClass}>
-                                      <option value="">Select</option>
-                                      {invoices.filter(inv => inv.status !== 'reversed' && inv.paid_amount > 0).map(inv => <option key={inv.id} value={inv.id}>{inv.invoice_number}</option>)}
+                                  <Field label="Refund From Payment">
+                                    <select value={newRefund.paymentId} onChange={(e) => {
+                                      const selectedPmt = payments.find(p => p.id === e.target.value);
+                                      setNewRefund(prev => ({ 
+                                        ...prev, 
+                                        paymentId: e.target.value,
+                                        amount: selectedPmt?.available_amount || 0 // Pre-fill with available amount
+                                      }));
+                                    }} className={selectClass}>
+                                      <option value="">Select Payment</option>
+                                      {payments.filter(p => (p.available_amount || 0) > 0).map(p => (
+                                        <option key={p.id} value={p.id}>
+                                          {p.payment_number} - AED {formatCurrency(p.available_amount || 0)} available
+                                        </option>
+                                      ))}
                                     </select>
                                   </Field>
                                   <Field label="Amount">
-                                    <input type="number" value={newRefund.amount || ''} onChange={(e) => setNewRefund(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))} className={inputClass} placeholder="0.00" />
+                                    <input 
+                                      type="number" 
+                                      value={newRefund.amount || ''} 
+                                      onChange={(e) => {
+                                        const selectedPmt = payments.find(p => p.id === newRefund.paymentId);
+                                        const maxAmount = selectedPmt?.available_amount || 0;
+                                        const enteredAmount = parseFloat(e.target.value) || 0;
+                                        setNewRefund(prev => ({ ...prev, amount: Math.min(enteredAmount, maxAmount) }));
+                                      }} 
+                                      className={inputClass} 
+                                      placeholder="0.00" 
+                                    />
                                   </Field>
                                   <Field label="Method">
                                     <select value={newRefund.method} onChange={(e) => setNewRefund(prev => ({ ...prev, method: e.target.value }))} className={selectClass}>
@@ -3064,7 +3179,7 @@ export default function SalesOrderModal({
                                 </div>
                                 <div className="flex justify-end gap-2">
                                   <button onClick={() => setShowRefundForm(false)} className="px-3 py-1.5 text-xs text-white/50 hover:text-white">Cancel</button>
-                                  <button onClick={handleAddRefund} disabled={savingAdjustment || !newRefund.invoiceId} className="px-3 py-1.5 text-xs font-medium text-black bg-white rounded-lg disabled:opacity-50">
+                                  <button onClick={handleAddRefund} disabled={savingAdjustment || !newRefund.paymentId || newRefund.amount <= 0} className="px-3 py-1.5 text-xs font-medium text-black bg-white rounded-lg disabled:opacity-50">
                                     {savingAdjustment ? 'Saving...' : 'Save'}
                                   </button>
                                 </div>

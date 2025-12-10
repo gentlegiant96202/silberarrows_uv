@@ -24,7 +24,10 @@ import {
   Undo,
   CheckCircle,
   XCircle,
-  CreditCard
+  CreditCard,
+  TrendingUp,
+  Handshake,
+  Info
 } from 'lucide-react';
 
 interface IconProps {
@@ -65,7 +68,10 @@ const Icon: React.FC<IconProps> = ({ name, className = '', size = 24, variant = 
     'undo': Undo,
     'check-circle': CheckCircle,
     'x-circle': XCircle,
-    'card': CreditCard
+    'card': CreditCard,
+    'chart-line': TrendingUp,
+    'handshake': Handshake,
+    'info-circle': Info
   };
 
   const iconSource = iconMap[name];

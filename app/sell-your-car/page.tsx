@@ -307,8 +307,8 @@ export default function SellYourCarPage() {
               TODAY
             </h1>
             <p className="hero-subtitle">
-              Get an instant market valuation and cash offer<br />
-              for your Mercedes-Benz. No obligations, no hidden fees.
+              Get an instant market valuation and cash offer for your Mercedes-Benz.<br />
+              No obligations, no hidden fees.
             </p>
 
             <div className="hero-highlights">

@@ -190,11 +190,11 @@ export default function SellYourCarPage() {
             className="h-12 w-auto"
           />
           <a 
-            href="tel:+971561742746"
+            href="tel:+971507779163"
             className="hidden md:flex items-center gap-2 text-white/80 hover:text-white transition-colors"
           >
             <Phone className="h-4 w-4" />
-            <span className="text-sm font-medium">+971 56 174 2746</span>
+            <span className="text-sm font-medium">+971 50 777 9163</span>
           </a>
         </div>
       </header>
@@ -406,7 +406,7 @@ export default function SellYourCarPage() {
                         asChild
                         className="flex-1 border-zinc-600 text-white hover:bg-zinc-800"
                       >
-                        <a href="tel:+971561742746">
+                        <a href="tel:+971507779163">
                           <Phone className="h-4 w-4 mr-2" />
                           Call Us
                         </a>
@@ -571,9 +571,9 @@ export default function SellYourCarPage() {
                       asChild
                       className="w-full border-zinc-600 text-white hover:bg-zinc-800 h-12"
                     >
-                      <a href="tel:+971561742746">
+                      <a href="tel:+971507779163">
                         <Phone className="mr-2 h-5 w-5" />
-                        Call Us: +971 56 174 2746
+                        Call Us: +971 50 777 9163
                       </a>
                     </Button>
                   </div>
@@ -668,10 +668,10 @@ export default function SellYourCarPage() {
                 <h3 className="text-white font-bold text-lg mb-2">Call Us</h3>
                 <p className="text-zinc-400 text-sm mb-4">For immediate assistance</p>
                 <a 
-                  href="tel:+971561742746"
+                  href="tel:+971507779163"
                   className="text-white font-bold text-xl hover:text-zinc-300 transition-colors"
                 >
-                  +971 56 174 2746
+                  +971 50 777 9163
                 </a>
               </CardContent>
             </Card>
@@ -728,7 +728,7 @@ export default function SellYourCarPage() {
       <footer className="fixed bottom-0 left-0 right-0 z-50 bg-black/95 backdrop-blur-xl border-t border-zinc-800">
         <div className="grid grid-cols-2">
           <a 
-            href="tel:+971561742746"
+            href="tel:+971507779163"
             className="flex items-center justify-center gap-3 py-5 text-white hover:bg-zinc-900 transition-colors border-r border-zinc-800"
           >
             <Phone className="h-5 w-5 text-zinc-400" />

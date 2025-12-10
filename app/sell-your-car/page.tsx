@@ -53,6 +53,7 @@ export default function SellYourCarPage() {
   
   // Step 1: Contact details
   const [customerName, setCustomerName] = useState('');
+  const [countryCode, setCountryCode] = useState('+971');
   const [customerPhone, setCustomerPhone] = useState('');
   
   // Step 2: Car details
@@ -193,7 +194,7 @@ export default function SellYourCarPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: customerName,
-          phone: customerPhone,
+          phone: getFullPhone(),
           model: selectedModel,
           trim: selectedTrim,
           year: selectedYear,
@@ -221,9 +222,28 @@ export default function SellYourCarPage() {
   };
 
   const formatPhone = (value: string) => {
-    // Allow + at start and numbers
-    return value.replace(/[^\d+]/g, '').slice(0, 15);
+    // Only allow numbers
+    return value.replace(/\D/g, '').slice(0, 12);
   };
+
+  const getFullPhone = () => {
+    return `${countryCode}${customerPhone}`;
+  };
+
+  // Common country codes for UAE region
+  const countryCodes = [
+    { code: '+971', country: 'UAE' },
+    { code: '+966', country: 'KSA' },
+    { code: '+974', country: 'Qatar' },
+    { code: '+973', country: 'Bahrain' },
+    { code: '+968', country: 'Oman' },
+    { code: '+965', country: 'Kuwait' },
+    { code: '+91', country: 'India' },
+    { code: '+92', country: 'Pakistan' },
+    { code: '+63', country: 'Philippines' },
+    { code: '+44', country: 'UK' },
+    { code: '+1', country: 'USA' },
+  ];
 
   const generateYears = () => {
     const years = [];
@@ -410,15 +430,29 @@ export default function SellYourCarPage() {
                     </div>
 
                     <div className="form-group">
-                      <Label className="form-label">Phone Number</Label>
-                      <Input
-                        type="tel"
-                        value={customerPhone}
-                        onChange={(e) => setCustomerPhone(formatPhone(e.target.value))}
-                        placeholder="+971 50 XXX XXXX"
-                        className="form-input"
-                        autoComplete="tel"
-                      />
+                      <Label className="form-label">WhatsApp Number</Label>
+                      <div className="phone-input-group">
+                        <Select value={countryCode} onValueChange={setCountryCode}>
+                          <SelectTrigger className="country-code-select">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent className="select-content">
+                            {countryCodes.map(({ code, country }) => (
+                              <SelectItem key={code} value={code} className="select-item">
+                                {code} {country}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          type="tel"
+                          value={customerPhone}
+                          onChange={(e) => setCustomerPhone(formatPhone(e.target.value))}
+                          placeholder="50 123 4567"
+                          className="form-input phone-number-input"
+                          autoComplete="tel"
+                        />
+                      </div>
                     </div>
 
                     {step1Error && (
@@ -557,7 +591,7 @@ export default function SellYourCarPage() {
                             Call Now
                           </a>
                           <a 
-                            href={`https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20am%20${encodeURIComponent(customerName)}%20and%20I%20would%20like%20a%20quote%20for%20my%20${encodeURIComponent(selectedYear + ' Mercedes-Benz ' + selectedModel + ' ' + selectedTrim)}%20with%20${encodeURIComponent(mileage)}km.%20My%20number%20is%20${encodeURIComponent(customerPhone)}`}
+                            href={`https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20am%20${encodeURIComponent(customerName)}%20and%20I%20would%20like%20a%20quote%20for%20my%20${encodeURIComponent(selectedYear + ' Mercedes-Benz ' + selectedModel + ' ' + selectedTrim)}%20with%20${encodeURIComponent(mileage)}km.%20My%20number%20is%20${encodeURIComponent(getFullPhone())}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="error-btn whatsapp"

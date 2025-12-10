@@ -1570,6 +1570,34 @@
     margin-bottom: 10px;
 }
 
+/* Phone Input Group */
+.phone-input-group {
+    display: flex;
+    gap: 10px;
+}
+
+.country-code-select {
+    width: 120px !important;
+    flex-shrink: 0;
+    background: rgba(0, 0, 0, 0.6) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: var(--light) !important;
+    height: 54px;
+    border-radius: 8px !important;
+    font-size: 14px;
+}
+
+.phone-number-input {
+    flex: 1;
+}
+
+@media (max-width: 480px) {
+    .country-code-select {
+        width: 100px !important;
+        font-size: 13px;
+    }
+}
+
 /* Submit button with icon */
 .submit-btn {
     display: flex;

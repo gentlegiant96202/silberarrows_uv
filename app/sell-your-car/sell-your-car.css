@@ -1740,6 +1740,10 @@
     text-align: center;
     margin-bottom: 20px;
     min-height: 85px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
 }
 
 .option-price-label {
@@ -1862,7 +1866,8 @@
     min-height: 70px;
     display: flex;
     flex-direction: column;
-    justify-content: flex-start;
+    justify-content: center;
+    align-items: center;
 }
 
 .result-content .option-price-value {

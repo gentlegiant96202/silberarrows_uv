@@ -168,7 +168,7 @@ export default function SellYourCarPage() {
           <div className="header-inner">
             <div className="header-logo">
               <img 
-                src="/assets/icons/silberarrows-logo.png" 
+                src="/assets/icons/logo.svg" 
                 alt="SilberArrows" 
                 width={160} 
                 height={54}

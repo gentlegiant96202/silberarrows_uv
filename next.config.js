@@ -1,14 +1,18 @@
 /** @type {import('next').NextConfig} */
 // Trigger fresh deployment - ensure latest commit is built
 const nextConfig = {
-  experimental: {
-    esmExternals: true,
-  },
   // Turbopack configuration (stable in Next.js 15)
   turbopack: {
     resolveAlias: {
       // Add any custom resolve aliases if needed
     }
+  },
+  // Optimize for external drive - reduce file system calls
+  onDemandEntries: {
+    // Keep pages in memory longer (reduce recompilation)
+    maxInactiveAge: 60 * 60 * 1000, // 1 hour
+    // More pages in memory
+    pagesBufferLength: 5,
   },
   // Enable modern image optimization with Sharp
   images: {

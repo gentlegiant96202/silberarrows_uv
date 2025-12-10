@@ -3,8 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "dev:local": "next dev -H 127.0.0.1 -p 3000",
+    "dev": "next dev --turbo",
+    "dev:local": "next dev --turbo -H 127.0.0.1 -p 3000",
     "start:prod-local": "next start -H 127.0.0.1 -p 3000",
     "build": "next build",
     "start": "next start",

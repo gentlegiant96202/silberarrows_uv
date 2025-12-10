@@ -7,11 +7,17 @@ module.exports = {
     instances: 1,
     autorestart: true,
     watch: false,
-    max_memory_restart: '1G',
+    max_memory_restart: '2G',
+    node_args: '--max-old-space-size=2048',
     env: {
       NODE_ENV: 'development',
       PORT: 3000,
-      HOST: '127.0.0.1'
+      HOST: '127.0.0.1',
+      // Turbopack optimizations
+      NEXT_TELEMETRY_DISABLED: '1',
+      // Reduce file watching overhead on external drive
+      WATCHPACK_POLLING: 'true',
+      CHOKIDAR_USEPOLLING: 'true'
     },
     error_file: './logs/pm2-error.log',
     out_file: './logs/pm2-out.log',
@@ -29,6 +35,7 @@ module.exports = {
     exp_backoff_restart_delay: 100
   }]
 };
+
 
 
 

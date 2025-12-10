@@ -1739,6 +1739,7 @@
 .option-price {
     text-align: center;
     margin-bottom: 20px;
+    min-height: 85px;
 }
 
 .option-price-label {
@@ -1858,6 +1859,10 @@
 
 .result-content .option-price {
     margin-bottom: 14px;
+    min-height: 70px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
 }
 
 .result-content .option-price-value {

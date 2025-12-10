@@ -371,12 +371,23 @@
 .hero-title span {
     background: #333 -webkit-gradient(linear, left top, right top, from(#333), to(#333), color-stop(0.5, #fff)) 0 0 no-repeat;
     background-image: -webkit-linear-gradient(-40deg, transparent 0%, transparent 40%, #fff 50%, transparent 60%, transparent 100%);
+    -webkit-background-size: 200px;
     background-size: 200px;
     color: rgba(255, 255, 255, 0.3);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    white-space: nowrap;
+    -webkit-animation: shine 8s infinite ease-in-out;
     animation: shine 8s infinite ease-in-out;
+    text-shadow: 0 0px 0px rgba(255, 255, 255, 0.5);
+}
+
+@-webkit-keyframes shine {
+    0%, 2% { background-position: -1000px; }
+    8% { background-position: top left; }
+    92% { background-position: top right; }
+    98%, 100% { background-position: 1000px; }
 }
 
 @keyframes shine {

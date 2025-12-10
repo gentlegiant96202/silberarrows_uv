@@ -381,10 +381,52 @@ export default function SellYourCarPage() {
                   </div>
                 </div>
 
-                {/* Error Message */}
+                {/* Error Message with Fallback CTA */}
                 {error && (
-                  <div className="bg-red-500/10 border border-red-500/30 rounded-lg px-4 py-3 text-red-400 text-sm">
-                    {error}
+                  <div className="bg-zinc-800/50 border border-zinc-700 rounded-lg p-5">
+                    <div className="flex items-start gap-3 mb-4">
+                      <div className="w-10 h-10 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                        <Calculator className="h-5 w-5 text-amber-400" />
+                      </div>
+                      <div>
+                        <p className="text-white font-medium mb-1">
+                          Limited Market Data Available
+                        </p>
+                        <p className="text-zinc-400 text-sm">
+                          We don&apos;t have enough listings for this specific combination to give you an instant quote. 
+                          Contact us directly for a personalized valuation.
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex gap-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        asChild
+                        className="flex-1 border-zinc-600 text-white hover:bg-zinc-800"
+                      >
+                        <a href="tel:+971561742746">
+                          <Phone className="h-4 w-4 mr-2" />
+                          Call Us
+                        </a>
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        asChild
+                        className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                      >
+                        <a
+                          href={`https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20would%20like%20to%20get%20a%20quote%20for%20my%20${encodeURIComponent(selectedYear + ' Mercedes-Benz ' + selectedModel + ' ' + selectedTrim)}%20with%20${encodeURIComponent(mileage)}km`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <MessageCircle className="h-4 w-4 mr-2" />
+                          WhatsApp Quote
+                        </a>
+                      </Button>
+                    </div>
                   </div>
                 )}
 

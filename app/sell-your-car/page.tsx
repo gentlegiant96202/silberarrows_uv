@@ -72,6 +72,7 @@ export default function SellYourCarPage() {
   const [result, setResult] = useState<PriceEstimate | null>(null);
   const [error, setError] = useState('');
   const [step1Error, setStep1Error] = useState('');
+  const [showNoDataFallback, setShowNoDataFallback] = useState(false);
 
   useEffect(() => {
     fetchModels();
@@ -136,6 +137,7 @@ export default function SellYourCarPage() {
     e.preventDefault();
     setError('');
     setResult(null);
+    setShowNoDataFallback(false);
     
     if (!selectedModel || !selectedTrim || !selectedYear || !mileage) {
       setError('Please fill in all required fields');
@@ -162,7 +164,16 @@ export default function SellYourCarPage() {
       if (!res.ok) {
         // Save lead even if pricing fails
         await saveLead(null);
-        throw new Error(data.error || 'Failed to get price estimate');
+        // Show no data fallback screen
+        setShowNoDataFallback(true);
+        return;
+      }
+      
+      // Validate that we have real pricing data (not zeros or nulls)
+      if (!data.pricing?.offer_price || data.pricing.offer_price <= 0) {
+        await saveLead(null);
+        setShowNoDataFallback(true);
+        return;
       }
       
       // Save lead with pricing data
@@ -170,7 +181,9 @@ export default function SellYourCarPage() {
       
       setResult(data);
     } catch (err: any) {
-      setError(err.message || 'Something went wrong');
+      // Save lead on any error
+      await saveLead(null);
+      setShowNoDataFallback(true);
     } finally {
       setLoading(false);
     }
@@ -351,9 +364,11 @@ export default function SellYourCarPage() {
             <h2>GET YOUR INSTANT OFFER</h2>
             <p>{formStep === 1 
                 ? "Let's start with your contact details" 
-                : result 
-                  ? "Choose your preferred option below"
-                  : "Now tell us about your vehicle"
+                : showNoDataFallback
+                  ? "We'll get back to you with a personalized quote"
+                  : result 
+                    ? "Choose your preferred option below"
+                    : "Now tell us about your vehicle"
             }</p>
           </div>
 
@@ -366,14 +381,14 @@ export default function SellYourCarPage() {
               <span className="step-label">Contact</span>
             </div>
             <div className={`step-line ${formStep > 1 ? 'completed' : ''}`}></div>
-            <div className={`step ${formStep >= 2 ? 'active' : ''} ${result ? 'completed' : ''}`}>
+            <div className={`step ${formStep >= 2 ? 'active' : ''} ${(result || showNoDataFallback) ? 'completed' : ''}`}>
               <div className="step-number">
-                {result ? <Icon name="check" size={14} variant="dark" /> : '2'}
+                {(result || showNoDataFallback) ? <Icon name="check" size={14} variant="dark" /> : '2'}
               </div>
               <span className="step-label">Vehicle</span>
             </div>
-            <div className={`step-line ${result ? 'completed' : ''}`}></div>
-            <div className={`step ${result ? 'active' : ''}`}>
+            <div className={`step-line ${(result || showNoDataFallback) ? 'completed' : ''}`}></div>
+            <div className={`step ${(result || showNoDataFallback) ? 'active' : ''}`}>
               <div className="step-number">3</div>
               <span className="step-label">Offer</span>
             </div>
@@ -437,7 +452,7 @@ export default function SellYourCarPage() {
                 )}
 
                 {/* Step 2: Vehicle Details */}
-                {formStep === 2 && !result && (
+                {formStep === 2 && !result && !showNoDataFallback && (
                   <form onSubmit={handleSubmit} className="calculator-form">
                     {/* Back Button */}
                     <button 
@@ -580,8 +595,58 @@ export default function SellYourCarPage() {
                   </form>
                 )}
 
+                {/* No Data Fallback */}
+                {showNoDataFallback && (
+                  <div className="no-data-fallback">
+                    <button 
+                      className="back-btn"
+                      onClick={() => {
+                        setShowNoDataFallback(false);
+                        setFormStep(2);
+                      }}
+                    >
+                      <Icon name="undo" size={14} variant="silver" />
+                      <span>Back</span>
+                    </button>
+
+                    <div className="no-data-icon">
+                      <Icon name="info-circle" size={48} variant="gold" />
+                    </div>
+
+                    <h3 className="no-data-title">We Need More Information</h3>
+                    
+                    <p className="no-data-text">
+                      We don&apos;t have enough market data for your<br />
+                      <strong>{selectedYear} {formatModelName(selectedModel)} {selectedTrim}</strong>
+                    </p>
+
+                    <p className="no-data-subtext">
+                      Don&apos;t worry! We&apos;ve saved your details and our team will provide you with a personalized quote.
+                    </p>
+
+                    <a
+                      href={`https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20am%20${encodeURIComponent(customerName)}%20and%20I%20would%20like%20a%20quote%20for%20my%20${encodeURIComponent(selectedYear + ' Mercedes-Benz ' + selectedModel + ' ' + selectedTrim)}%20with%20${encodeURIComponent(mileage)}km.%20My%20number%20is%20${encodeURIComponent(getFullPhone())}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="whatsapp-cta-btn"
+                    >
+                      <Icon name="whatsapp" size={22} variant="dark" />
+                      <span>Get Quote via WhatsApp</span>
+                    </a>
+
+                    <a href="tel:+971507779163" className="call-cta-link">
+                      <Icon name="phone" size={16} variant="gold" />
+                      <span>Or call us: +971 50 777 9163</span>
+                    </a>
+
+                    <p className="no-data-note">
+                      We typically respond within 30 minutes during business hours
+                    </p>
+                  </div>
+                )}
+
                 {/* Step 3: Results */}
-                {result && (
+                {result && !showNoDataFallback && (
                   <div id="result" className="result-content">
                     {/* Get Another Quote Button */}
                     <button 

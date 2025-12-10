@@ -1933,3 +1933,120 @@
         font-size: 10px;
     }
 }
+
+/* No Data Fallback */
+.no-data-fallback {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 20px 0;
+    min-height: 420px;
+}
+
+.no-data-fallback .back-btn {
+    align-self: flex-start;
+    margin-bottom: 20px;
+}
+
+.no-data-icon {
+    width: 80px;
+    height: 80px;
+    background: rgba(234, 179, 8, 0.15);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.no-data-title {
+    font-family: var(--impact-font);
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--light);
+    margin-bottom: 15px;
+    text-transform: uppercase;
+}
+
+.no-data-text {
+    color: var(--silver);
+    font-size: 15px;
+    line-height: 1.6;
+    margin-bottom: 10px;
+}
+
+.no-data-text strong {
+    color: var(--light);
+}
+
+.no-data-subtext {
+    color: var(--silver);
+    font-size: 13px;
+    line-height: 1.5;
+    margin-bottom: 25px;
+    max-width: 350px;
+}
+
+.whatsapp-cta-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    max-width: 320px;
+    padding: 18px 24px;
+    background: #25D366;
+    border-radius: 10px;
+    color: var(--dark);
+    text-decoration: none;
+    font-family: var(--impact-font);
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 20px rgba(37, 211, 102, 0.3);
+}
+
+.whatsapp-cta-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 30px rgba(37, 211, 102, 0.5);
+    background: #20bd5a;
+}
+
+.call-cta-link {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 20px;
+    color: var(--silver);
+    text-decoration: none;
+    font-size: 14px;
+    transition: color 0.3s ease;
+}
+
+.call-cta-link:hover {
+    color: var(--gold);
+}
+
+.no-data-note {
+    margin-top: 25px;
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 12px;
+}
+
+@media (max-width: 480px) {
+    .no-data-title {
+        font-size: 20px;
+    }
+    
+    .no-data-text {
+        font-size: 14px;
+    }
+    
+    .whatsapp-cta-btn {
+        font-size: 14px;
+        padding: 16px 20px;
+    }
+}

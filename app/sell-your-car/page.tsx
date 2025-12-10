@@ -486,9 +486,9 @@ export default function SellYourCarPage() {
 
                   {/* Trust Badges */}
                   <div className="flex justify-center gap-3 flex-wrap mb-8">
-                    <Badge variant="outline" className="px-4 py-2 bg-green-500/10 border-green-500/30 text-green-400">
-                      <CheckCircle2 className="h-4 w-4 mr-2" />
-                      Guaranteed Price
+                    <Badge variant="outline" className="px-4 py-2 bg-zinc-500/10 border-zinc-500/30 text-zinc-300">
+                      <Car className="h-4 w-4 mr-2" />
+                      Subject to Inspection
                     </Badge>
                     <Badge variant="outline" className="px-4 py-2 bg-blue-500/10 border-blue-500/30 text-blue-400">
                       <Shield className="h-4 w-4 mr-2" />

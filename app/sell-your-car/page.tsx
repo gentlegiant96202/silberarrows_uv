@@ -385,26 +385,35 @@ export default function SellYourCarPage() {
         {/* Calculator Section */}
         <section className="vehicles-section" id="calculator">
           <div className="section-header">
-            <h2>GET YOUR INSTANT OFFER</h2>
-            <p>{formStep === 1 ? "Let's start with your contact details" : "Now tell us about your vehicle"}</p>
+            <h2>{result ? "YOUR OFFERS" : "GET YOUR INSTANT OFFER"}</h2>
+            <p>{result 
+              ? `${result.input.year} Mercedes-Benz ${result.input.model} ${result.input.trim || ''} • ${formatPrice(result.input.mileage_km)} km`
+              : formStep === 1 
+                ? "Let's start with your contact details" 
+                : "Now tell us about your vehicle"
+            }</p>
           </div>
 
-          {/* Step Indicator */}
-          <div className="step-indicator">
-            <div className={`step ${formStep >= 1 ? 'active' : ''} ${formStep > 1 ? 'completed' : ''}`}>
-              <div className="step-number">
-                {formStep > 1 ? <Icon name="check" size={16} variant="dark" /> : '1'}
+          {/* Step Indicator - hide when results shown */}
+          {!result && (
+            <div className="step-indicator">
+              <div className={`step ${formStep >= 1 ? 'active' : ''} ${formStep > 1 ? 'completed' : ''}`}>
+                <div className="step-number">
+                  {formStep > 1 ? <Icon name="check" size={16} variant="dark" /> : '1'}
+                </div>
+                <span className="step-label">Your Details</span>
               </div>
-              <span className="step-label">Your Details</span>
+              <div className="step-line"></div>
+              <div className={`step ${formStep >= 2 ? 'active' : ''}`}>
+                <div className="step-number">2</div>
+                <span className="step-label">Vehicle Info</span>
+              </div>
             </div>
-            <div className="step-line"></div>
-            <div className={`step ${formStep >= 2 ? 'active' : ''}`}>
-              <div className="step-number">2</div>
-              <span className="step-label">Vehicle Info</span>
-            </div>
-          </div>
+          )}
 
           <div className="calculator-container">
+            {/* Form Card - hide when results shown */}
+            {!result && (
             <Card className="calculator-card">
               <CardContent className="pt-6">
                 {/* Step 1: Contact Details */}
@@ -606,18 +615,19 @@ export default function SellYourCarPage() {
                 )}
               </CardContent>
             </Card>
+            )}
 
             {/* Result Section */}
             {result && (
               <div id="result" className="result-container">
-                {/* Vehicle Info Header */}
-                <div className="result-vehicle-header">
-                  <p className="result-vehicle-label">Your Vehicle</p>
-                  <p className="result-vehicle-name">
-                    {result.input.year} Mercedes-Benz {result.input.model} {result.input.trim}
-                  </p>
-                  <p className="result-vehicle-mileage">{formatPrice(result.input.mileage_km)} km</p>
-                </div>
+                {/* Get Another Quote Button */}
+                <button 
+                  className="back-btn result-back"
+                  onClick={() => setResult(null)}
+                >
+                  <Icon name="undo" size={14} variant="silver" />
+                  <span>Get another quote</span>
+                </button>
 
                 {/* Both Options Side by Side */}
                 <div className="options-grid">

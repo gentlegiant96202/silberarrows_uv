@@ -1555,6 +1555,10 @@
     color: var(--light);
 }
 
+.back-btn.result-back {
+    margin-bottom: 25px;
+}
+
 /* Customer Summary */
 .customer-summary {
     display: flex;

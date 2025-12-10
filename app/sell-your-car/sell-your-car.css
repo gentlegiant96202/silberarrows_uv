@@ -16,6 +16,7 @@
 /* Showroom Main Content */
 .showroom-main {
     padding-top: 80px;
+    padding-bottom: 80px;
     background: #000;
     min-height: 100vh;
 }
@@ -23,6 +24,7 @@
 @media (max-width: 768px) {
     .showroom-main {
         padding-top: 60px;
+        padding-bottom: 100px;
     }
 }
 
@@ -627,6 +629,8 @@
     display: flex;
     flex-direction: column;
     gap: 20px;
+    position: relative;
+    z-index: 10;
 }
 
 .form-group {
@@ -832,6 +836,8 @@
 /* Result Section */
 .result-container {
     margin-top: 30px;
+    position: relative;
+    z-index: 10;
 }
 
 .result-card {

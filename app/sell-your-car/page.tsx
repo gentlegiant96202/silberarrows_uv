@@ -122,7 +122,7 @@ export default function SellYourCarPage() {
     setError('');
     setResult(null);
     
-    if (!selectedModel || !selectedYear || !mileage) {
+    if (!selectedModel || !selectedTrim || !selectedYear || !mileage) {
       setError('Please fill in all required fields');
       return;
     }
@@ -137,7 +137,7 @@ export default function SellYourCarPage() {
           model: selectedModel,
           year: parseInt(selectedYear),
           mileage: parseInt(mileage.replace(/,/g, '')),
-          trim: (selectedTrim && selectedTrim !== 'any') ? selectedTrim : undefined
+          trim: selectedTrim
         })
       });
 
@@ -321,9 +321,7 @@ export default function SellYourCarPage() {
 
                 {/* Trim */}
                 <div className="space-y-2">
-                  <Label htmlFor="trim" className="text-zinc-300">
-                    Trim <span className="text-zinc-500">(Optional)</span>
-                  </Label>
+                  <Label htmlFor="trim" className="text-zinc-300">Trim</Label>
                   <Select 
                     value={selectedTrim} 
                     onValueChange={setSelectedTrim}
@@ -332,14 +330,11 @@ export default function SellYourCarPage() {
                     <SelectTrigger className="bg-black/50 border-zinc-700 text-white h-12">
                       <SelectValue placeholder={
                         loadingTrims ? "Loading trims..." : 
-                        selectedModel ? "Select Trim (Optional)" : 
+                        selectedModel ? "Select Trim" : 
                         "Select model first"
                       } />
                     </SelectTrigger>
                     <SelectContent className="bg-zinc-900 border-zinc-700">
-                      <SelectItem value="any" className="text-white hover:bg-zinc-800">
-                        Any Trim
-                      </SelectItem>
                       {trims.map(trim => (
                         <SelectItem key={trim} value={trim} className="text-white hover:bg-zinc-800">
                           {trim}
@@ -397,7 +392,7 @@ export default function SellYourCarPage() {
                 <Button
                   type="submit"
                   size="lg"
-                  disabled={loading || !selectedModel || !selectedYear || !mileage}
+                  disabled={loading || !selectedModel || !selectedTrim || !selectedYear || !mileage}
                   className="w-full bg-white text-black hover:bg-zinc-200 font-bold h-14 text-lg"
                 >
                   {loading ? (

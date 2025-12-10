@@ -29,7 +29,10 @@ export default function LayoutWrapper({ children }: { children: React.ReactNode 
   // Check if this is the public UV showroom
   const isUVShowroomPage = pathname.startsWith('/uv/showroom');
   
-  const shouldShowHeader = !noHeaderPages.includes(pathname) && !isBusinessCardPage && !isDubizzlePage && !isShowroomPage && !isUVShowroomPage;
+  // Check if this is the public pricing/valuation page
+  const isPricingPage = pathname.startsWith('/sell-your-car') || pathname.startsWith('/valuation');
+  
+  const shouldShowHeader = !noHeaderPages.includes(pathname) && !isBusinessCardPage && !isDubizzlePage && !isShowroomPage && !isUVShowroomPage && !isPricingPage;
   const shouldShowSidebar = shouldShowHeader; // Sidebar appears with header
   const isAccountsPage = pathname.startsWith('/accounts');
   const isMarketingPage = pathname.startsWith('/marketing');

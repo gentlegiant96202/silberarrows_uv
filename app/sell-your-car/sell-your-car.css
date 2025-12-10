@@ -1424,3 +1424,156 @@
         font-size: 11px;
     }
 }
+
+/* Step Indicator */
+.step-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    margin-bottom: 40px;
+    position: relative;
+    z-index: 1;
+}
+
+.step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    opacity: 0.5;
+    transition: all 0.3s ease;
+}
+
+.step.active {
+    opacity: 1;
+}
+
+.step-number {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--impact-font);
+    font-size: 16px;
+    color: var(--silver);
+    transition: all 0.3s ease;
+}
+
+.step.active .step-number {
+    background: var(--green);
+    border-color: var(--green);
+    color: var(--dark);
+}
+
+.step.completed .step-number {
+    background: var(--green);
+    border-color: var(--green);
+}
+
+.step-label {
+    font-size: 12px;
+    color: var(--silver);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.step.active .step-label {
+    color: var(--light);
+}
+
+.step-line {
+    width: 80px;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.2);
+    margin: 0 15px;
+    margin-bottom: 28px;
+}
+
+@media (max-width: 480px) {
+    .step-line {
+        width: 40px;
+        margin: 0 8px;
+    }
+    
+    .step-number {
+        width: 36px;
+        height: 36px;
+        font-size: 14px;
+    }
+    
+    .step-label {
+        font-size: 10px;
+    }
+}
+
+/* Form Error */
+.form-error {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    background: rgba(234, 179, 8, 0.1);
+    border: 1px solid rgba(234, 179, 8, 0.3);
+    border-radius: 8px;
+    color: #fbbf24;
+    font-size: 14px;
+}
+
+/* Privacy Note */
+.privacy-note {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--silver);
+    font-size: 12px;
+    margin-top: 10px;
+}
+
+/* Back Button */
+.back-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: none;
+    border: none;
+    color: var(--silver);
+    font-size: 13px;
+    cursor: pointer;
+    padding: 0;
+    margin-bottom: 10px;
+    transition: color 0.3s ease;
+}
+
+.back-btn:hover {
+    color: var(--light);
+}
+
+/* Customer Summary */
+.customer-summary {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 18px;
+    background: rgba(34, 197, 94, 0.1);
+    border: 1px solid rgba(34, 197, 94, 0.3);
+    border-radius: 8px;
+    color: var(--green);
+    font-size: 15px;
+    font-weight: 500;
+    margin-bottom: 10px;
+}
+
+/* Submit button with icon */
+.submit-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}

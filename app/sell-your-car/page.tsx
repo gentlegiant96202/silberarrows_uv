@@ -43,6 +43,14 @@ interface PriceEstimate {
 }
 
 export default function SellYourCarPage() {
+  // Form step state
+  const [formStep, setFormStep] = useState(1);
+  
+  // Step 1: Contact details
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  
+  // Step 2: Car details
   const [models, setModels] = useState<string[]>([]);
   const [trims, setTrims] = useState<string[]>([]);
   const [yearRange, setYearRange] = useState({ min_year: 2016, max_year: 2025 });
@@ -58,6 +66,7 @@ export default function SellYourCarPage() {
   const [loadingTrims, setLoadingTrims] = useState(false);
   const [result, setResult] = useState<PriceEstimate | null>(null);
   const [error, setError] = useState('');
+  const [step1Error, setStep1Error] = useState('');
 
   useEffect(() => {
     fetchModels();
@@ -101,6 +110,28 @@ export default function SellYourCarPage() {
     }
   };
 
+  const handleStep1Submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setStep1Error('');
+    
+    if (!customerName.trim()) {
+      setStep1Error('Please enter your name');
+      return;
+    }
+    
+    if (!customerPhone.trim() || customerPhone.replace(/\D/g, '').length < 9) {
+      setStep1Error('Please enter a valid phone number');
+      return;
+    }
+    
+    setFormStep(2);
+    
+    // Scroll to form
+    setTimeout(() => {
+      document.getElementById('calculator')?.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -114,6 +145,7 @@ export default function SellYourCarPage() {
     setLoading(true);
     
     try {
+      // Get price estimate
       const res = await fetch('/api/mercedes-pricing', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -128,8 +160,13 @@ export default function SellYourCarPage() {
       const data = await res.json();
       
       if (!res.ok) {
+        // Save lead even if pricing fails
+        await saveLead(null);
         throw new Error(data.error || 'Failed to get price estimate');
       }
+      
+      // Save lead with pricing data
+      await saveLead(data);
       
       setResult(data);
       
@@ -143,6 +180,29 @@ export default function SellYourCarPage() {
     }
   };
 
+  const saveLead = async (priceData: PriceEstimate | null) => {
+    try {
+      await fetch('/api/sell-your-car/lead', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: customerName,
+          phone: customerPhone,
+          model: selectedModel,
+          trim: selectedTrim,
+          year: selectedYear,
+          mileage: mileage.replace(/,/g, ''),
+          offer_price: priceData?.pricing?.offer_price || null,
+          market_value: priceData?.pricing?.market_value || null,
+          confidence: priceData?.pricing?.confidence || null,
+          specs_used: priceData?.pricing?.specs_used || null
+        })
+      });
+    } catch (err) {
+      console.error('Failed to save lead:', err);
+    }
+  };
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('en-AE').format(Math.round(price));
   };
@@ -150,6 +210,11 @@ export default function SellYourCarPage() {
   const formatMileage = (value: string) => {
     const num = value.replace(/\D/g, '');
     return num ? parseInt(num).toLocaleString() : '';
+  };
+
+  const formatPhone = (value: string) => {
+    // Allow + at start and numbers
+    return value.replace(/[^\d+]/g, '').slice(0, 15);
   };
 
   const generateYears = () => {
@@ -300,136 +365,216 @@ export default function SellYourCarPage() {
         <section className="vehicles-section" id="calculator">
           <div className="section-header">
             <h2>GET YOUR INSTANT OFFER</h2>
-            <p>Enter your vehicle details for an accurate market valuation</p>
+            <p>{formStep === 1 ? "Let's start with your contact details" : "Now tell us about your vehicle"}</p>
+          </div>
+
+          {/* Step Indicator */}
+          <div className="step-indicator">
+            <div className={`step ${formStep >= 1 ? 'active' : ''} ${formStep > 1 ? 'completed' : ''}`}>
+              <div className="step-number">
+                {formStep > 1 ? <Icon name="check" size={16} variant="dark" /> : '1'}
+              </div>
+              <span className="step-label">Your Details</span>
+            </div>
+            <div className="step-line"></div>
+            <div className={`step ${formStep >= 2 ? 'active' : ''}`}>
+              <div className="step-number">2</div>
+              <span className="step-label">Vehicle Info</span>
+            </div>
           </div>
 
           <div className="calculator-container">
             <Card className="calculator-card">
               <CardContent className="pt-6">
-                <form onSubmit={handleSubmit} className="calculator-form">
-                  {/* Model */}
-                  <div className="form-group">
-                    <Label className="form-label">Model</Label>
-                    <Select 
-                      value={selectedModel} 
-                      onValueChange={setSelectedModel}
-                      disabled={loadingModels}
-                    >
-                      <SelectTrigger className="form-select">
-                        <SelectValue placeholder={loadingModels ? "Loading..." : "Select Model"} />
-                      </SelectTrigger>
-                      <SelectContent className="select-content">
-                        {models.map(model => (
-                          <SelectItem key={model} value={model} className="select-item">
-                            {model}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Trim */}
-                  <div className="form-group">
-                    <Label className="form-label">Trim</Label>
-                    <Select 
-                      value={selectedTrim} 
-                      onValueChange={setSelectedTrim}
-                      disabled={!selectedModel || loadingTrims}
-                    >
-                      <SelectTrigger className="form-select">
-                        <SelectValue placeholder={
-                          loadingTrims ? "Loading..." : 
-                          selectedModel ? "Select Trim" : 
-                          "Select model first"
-                        } />
-                      </SelectTrigger>
-                      <SelectContent className="select-content">
-                        {trims.map(trim => (
-                          <SelectItem key={trim} value={trim} className="select-item">
-                            {trim}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {/* Year and Mileage Row */}
-                  <div className="form-row">
+                {/* Step 1: Contact Details */}
+                {formStep === 1 && (
+                  <form onSubmit={handleStep1Submit} className="calculator-form">
                     <div className="form-group">
-                      <Label className="form-label">Year</Label>
+                      <Label className="form-label">Your Name</Label>
+                      <Input
+                        type="text"
+                        value={customerName}
+                        onChange={(e) => setCustomerName(e.target.value)}
+                        placeholder="Enter your full name"
+                        className="form-input"
+                        autoComplete="name"
+                      />
+                    </div>
+
+                    <div className="form-group">
+                      <Label className="form-label">Phone Number</Label>
+                      <Input
+                        type="tel"
+                        value={customerPhone}
+                        onChange={(e) => setCustomerPhone(formatPhone(e.target.value))}
+                        placeholder="+971 50 XXX XXXX"
+                        className="form-input"
+                        autoComplete="tel"
+                      />
+                    </div>
+
+                    {step1Error && (
+                      <div className="form-error">
+                        <Icon name="info-circle" size={16} variant="gold" />
+                        <span>{step1Error}</span>
+                      </div>
+                    )}
+
+                    <button type="submit" className="submit-btn">
+                      <span>CONTINUE</span>
+                      <Icon name="directions" size={18} variant="dark" />
+                    </button>
+
+                    <p className="privacy-note">
+                      <Icon name="shield-alt" size={14} variant="silver" />
+                      Your information is secure and will not be shared
+                    </p>
+                  </form>
+                )}
+
+                {/* Step 2: Vehicle Details */}
+                {formStep === 2 && (
+                  <form onSubmit={handleSubmit} className="calculator-form">
+                    {/* Back Button */}
+                    <button 
+                      type="button" 
+                      className="back-btn"
+                      onClick={() => setFormStep(1)}
+                    >
+                      <Icon name="undo" size={14} variant="silver" />
+                      <span>Back to contact details</span>
+                    </button>
+
+                    {/* Customer Summary */}
+                    <div className="customer-summary">
+                      <Icon name="check-circle" size={18} variant="gold" />
+                      <span>Welcome, {customerName.split(' ')[0]}!</span>
+                    </div>
+
+                    {/* Model */}
+                    <div className="form-group">
+                      <Label className="form-label">Model</Label>
                       <Select 
-                        value={selectedYear} 
-                        onValueChange={setSelectedYear}
-                        disabled={!selectedModel}
+                        value={selectedModel} 
+                        onValueChange={setSelectedModel}
+                        disabled={loadingModels}
                       >
                         <SelectTrigger className="form-select">
-                          <SelectValue placeholder="Year" />
+                          <SelectValue placeholder={loadingModels ? "Loading..." : "Select Model"} />
                         </SelectTrigger>
                         <SelectContent className="select-content">
-                          {generateYears().map(year => (
-                            <SelectItem key={year} value={year.toString()} className="select-item">
-                              {year}
+                          {models.map(model => (
+                            <SelectItem key={model} value={model} className="select-item">
+                              {model}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     </div>
 
+                    {/* Trim */}
                     <div className="form-group">
-                      <Label className="form-label">Mileage (km)</Label>
-                      <Input
-                        type="text"
-                        value={mileage}
-                        onChange={(e) => setMileage(formatMileage(e.target.value))}
-                        placeholder="e.g. 50,000"
-                        className="form-input"
-                      />
+                      <Label className="form-label">Trim</Label>
+                      <Select 
+                        value={selectedTrim} 
+                        onValueChange={setSelectedTrim}
+                        disabled={!selectedModel || loadingTrims}
+                      >
+                        <SelectTrigger className="form-select">
+                          <SelectValue placeholder={
+                            loadingTrims ? "Loading..." : 
+                            selectedModel ? "Select Trim" : 
+                            "Select model first"
+                          } />
+                        </SelectTrigger>
+                        <SelectContent className="select-content">
+                          {trims.map(trim => (
+                            <SelectItem key={trim} value={trim} className="select-item">
+                              {trim}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                     </div>
-                  </div>
 
-                  {/* Error Message with Fallback */}
-                  {error && (
-                    <div className="error-card">
-                      <div className="error-icon">
-                        <Icon name="info-circle" size={20} variant="gold" />
-                      </div>
-                      <div className="error-content">
-                        <p className="error-title">Limited Market Data</p>
-                        <p className="error-text">
-                          Contact us directly for a personalized quote.
-                        </p>
-                      </div>
-                      <div className="error-actions">
-                        <a href="tel:+971507779163" className="error-btn">
-                          <Icon name="phone" size={14} variant="gold" />
-                          Call
-                        </a>
-                        <a 
-                          href={`https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20would%20like%20a%20quote%20for%20my%20${encodeURIComponent(selectedYear + ' Mercedes-Benz ' + selectedModel + ' ' + selectedTrim)}%20with%20${encodeURIComponent(mileage)}km`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="error-btn whatsapp"
+                    {/* Year and Mileage Row */}
+                    <div className="form-row">
+                      <div className="form-group">
+                        <Label className="form-label">Year</Label>
+                        <Select 
+                          value={selectedYear} 
+                          onValueChange={setSelectedYear}
+                          disabled={!selectedModel}
                         >
-                          <Icon name="whatsapp" size={14} variant="white" />
-                          WhatsApp
-                        </a>
+                          <SelectTrigger className="form-select">
+                            <SelectValue placeholder="Year" />
+                          </SelectTrigger>
+                          <SelectContent className="select-content">
+                            {generateYears().map(year => (
+                              <SelectItem key={year} value={year.toString()} className="select-item">
+                                {year}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div className="form-group">
+                        <Label className="form-label">Mileage (km)</Label>
+                        <Input
+                          type="text"
+                          value={mileage}
+                          onChange={(e) => setMileage(formatMileage(e.target.value))}
+                          placeholder="e.g. 50,000"
+                          className="form-input"
+                        />
                       </div>
                     </div>
-                  )}
 
-                  {/* Submit Button */}
-                  <button
-                    type="submit"
-                    disabled={loading || !selectedModel || !selectedTrim || !selectedYear || !mileage}
-                    className="submit-btn"
-                  >
-                    {loading ? (
-                      <span>Calculating...</span>
-                    ) : (
-                      <span>GET MY OFFER</span>
+                    {/* Error Message with Fallback */}
+                    {error && (
+                      <div className="error-card">
+                        <div className="error-icon">
+                          <Icon name="info-circle" size={20} variant="gold" />
+                        </div>
+                        <div className="error-content">
+                          <p className="error-title">Limited Market Data</p>
+                          <p className="error-text">
+                            We&apos;ve saved your details. Our team will contact you shortly with a personalized quote.
+                          </p>
+                        </div>
+                        <div className="error-actions">
+                          <a href="tel:+971507779163" className="error-btn">
+                            <Icon name="phone" size={14} variant="gold" />
+                            Call Now
+                          </a>
+                          <a 
+                            href={`https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20am%20${encodeURIComponent(customerName)}%20and%20I%20would%20like%20a%20quote%20for%20my%20${encodeURIComponent(selectedYear + ' Mercedes-Benz ' + selectedModel + ' ' + selectedTrim)}%20with%20${encodeURIComponent(mileage)}km.%20My%20number%20is%20${encodeURIComponent(customerPhone)}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="error-btn whatsapp"
+                          >
+                            <Icon name="whatsapp" size={14} variant="white" />
+                            WhatsApp
+                          </a>
+                        </div>
+                      </div>
                     )}
-                  </button>
-                </form>
+
+                    {/* Submit Button */}
+                    <button
+                      type="submit"
+                      disabled={loading || !selectedModel || !selectedTrim || !selectedYear || !mileage}
+                      className="submit-btn"
+                    >
+                      {loading ? (
+                        <span>Calculating...</span>
+                      ) : (
+                        <span>GET MY OFFER</span>
+                      )}
+                    </button>
+                  </form>
+                )}
               </CardContent>
             </Card>
 
@@ -527,7 +672,7 @@ export default function SellYourCarPage() {
                     {/* CTA Buttons */}
                     <div className="result-cta">
                       <a
-                        href={`https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20would%20like%20to%20sell%20my%20${encodeURIComponent(result.input.year + ' Mercedes-Benz ' + result.input.model + ' ' + (result.input.trim || ''))}%20with%20${encodeURIComponent(formatPrice(result.input.mileage_km))}km.%20Your%20offer%20was%20AED%20${encodeURIComponent(formatPrice(result.pricing.offer_price))}.%20Please%20arrange%20inspection.`}
+                        href={`https://wa.me/97143805515?text=Hi%20Team%20SilberArrows%2C%20I%20am%20${encodeURIComponent(customerName)}%20and%20I%20would%20like%20to%20sell%20my%20${encodeURIComponent(result.input.year + ' Mercedes-Benz ' + result.input.model + ' ' + (result.input.trim || ''))}%20with%20${encodeURIComponent(formatPrice(result.input.mileage_km))}km.%20Your%20offer%20was%20AED%20${encodeURIComponent(formatPrice(result.pricing.offer_price))}.%20My%20number%20is%20${encodeURIComponent(customerPhone)}.%20Please%20arrange%20inspection.`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="result-cta-primary"

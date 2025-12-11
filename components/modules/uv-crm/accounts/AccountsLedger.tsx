@@ -8,33 +8,35 @@ import {
   Receipt, 
   RefreshCw,
   ChevronDown,
-  ChevronUp,
   Filter,
   Download,
-  Calendar,
   Search,
   X,
   Loader2,
-  TrendingUp,
-  TrendingDown,
   Wallet,
-  AlertCircle
+  AlertCircle,
+  FileDown,
+  ExternalLink
 } from 'lucide-react';
+import SalesOrderModal from '../modals/SalesOrderModal';
 
 // ===== INTERFACES =====
 interface LedgerEntry {
+  id: string;
+  posted_at: string;
   transaction_date: string;
-  transaction_type: 'invoice' | 'payment' | 'credit_note' | 'refund';
-  reference: string;
+  entry_type: 'invoice' | 'payment' | 'credit_note' | 'refund' | 'invoice_reversal';
+  document_number: string;
   description: string;
   debit: number;
   credit: number;
   lead_id: string;
-  source_id: string;
   customer_name: string;
-  customer_phone: string;
   customer_number: string;
-  customer_balance: number;
+  customer_phone: string;
+  source_table: string;
+  source_id: string;
+  pdf_url: string | null;
 }
 
 interface LedgerSummary {
@@ -51,6 +53,14 @@ interface FilterState {
   toDate: string;
   transactionType: string;
   searchQuery: string;
+  customerId: string;
+}
+
+interface Customer {
+  id: string;
+  full_name: string;
+  customer_number: string;
+  phone_number: string;
 }
 
 // ===== HELPER FUNCTIONS =====
@@ -80,6 +90,7 @@ const formatDateTime = (dateString: string) => {
 const getTransactionIcon = (type: string) => {
   switch (type) {
     case 'invoice': return <FileText className="w-4 h-4" />;
+    case 'invoice_reversal': return <FileText className="w-4 h-4" />;
     case 'payment': return <CreditCard className="w-4 h-4" />;
     case 'credit_note': return <Receipt className="w-4 h-4" />;
     case 'refund': return <RefreshCw className="w-4 h-4" />;
@@ -90,6 +101,7 @@ const getTransactionIcon = (type: string) => {
 const getTransactionColor = (type: string) => {
   switch (type) {
     case 'invoice': return 'text-white bg-white/10';
+    case 'invoice_reversal': return 'text-red-400 bg-red-500/10';
     case 'payment': return 'text-green-400 bg-green-500/10';
     case 'credit_note': return 'text-purple-400 bg-purple-500/10';
     case 'refund': return 'text-orange-400 bg-orange-500/10';
@@ -100,6 +112,7 @@ const getTransactionColor = (type: string) => {
 const getTransactionLabel = (type: string) => {
   switch (type) {
     case 'invoice': return 'Invoice';
+    case 'invoice_reversal': return 'Reversal';
     case 'payment': return 'Payment';
     case 'credit_note': return 'Credit Note';
     case 'refund': return 'Refund';
@@ -118,14 +131,54 @@ export default function AccountsLedger() {
   const [offset, setOffset] = useState(0);
   const LIMIT = 50;
 
+  // Customer list for dropdown
+  const [customers, setCustomers] = useState<Customer[]>([]);
+  const [loadingCustomers, setLoadingCustomers] = useState(false);
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+
+  // Modal state
+  const [showAccountModal, setShowAccountModal] = useState(false);
+  const [selectedLead, setSelectedLead] = useState<any>(null);
+  const [loadingLead, setLoadingLead] = useState<string | null>(null);
+
   const [filters, setFilters] = useState<FilterState>({
     fromDate: '',
     toDate: '',
     transactionType: '',
-    searchQuery: ''
+    searchQuery: '',
+    customerId: ''
   });
 
-  // Load ledger entries
+  // Selected customer display
+  const [selectedCustomerDisplay, setSelectedCustomerDisplay] = useState('');
+
+  // Load customers for dropdown
+  const loadCustomers = useCallback(async (search: string = '') => {
+    setLoadingCustomers(true);
+    try {
+      let query = supabase
+        .from('leads')
+        .select('id, full_name, customer_number, phone_number')
+        .not('customer_number', 'is', null)
+        .order('full_name')
+        .limit(20);
+
+      if (search) {
+        query = query.or(`full_name.ilike.%${search}%,customer_number.ilike.%${search}%,phone_number.ilike.%${search}%`);
+      }
+
+      const { data, error } = await query;
+      if (error) throw error;
+      setCustomers(data || []);
+    } catch (error) {
+      console.error('Error loading customers:', error);
+    } finally {
+      setLoadingCustomers(false);
+    }
+  }, []);
+
+  // Load ledger entries from new table
   const loadEntries = useCallback(async (reset: boolean = false) => {
     if (reset) {
       setLoading(true);
@@ -137,11 +190,12 @@ export default function AccountsLedger() {
     try {
       const currentOffset = reset ? 0 : offset;
       
-      // Build query
+      // Build query against new ledger table
       let query = supabase
-        .from('uv_accounts_ledger')
+        .from('uv_ledger_entries')
         .select('*')
         .order('transaction_date', { ascending: false })
+        .order('posted_at', { ascending: false })
         .range(currentOffset, currentOffset + LIMIT - 1);
 
       // Apply filters
@@ -149,13 +203,16 @@ export default function AccountsLedger() {
         query = query.gte('transaction_date', filters.fromDate);
       }
       if (filters.toDate) {
-        query = query.lte('transaction_date', filters.toDate + 'T23:59:59');
+        query = query.lte('transaction_date', filters.toDate);
       }
       if (filters.transactionType) {
-        query = query.eq('transaction_type', filters.transactionType);
+        query = query.eq('entry_type', filters.transactionType);
+      }
+      if (filters.customerId) {
+        query = query.eq('lead_id', filters.customerId);
       }
       if (filters.searchQuery) {
-        query = query.or(`customer_name.ilike.%${filters.searchQuery}%,reference.ilike.%${filters.searchQuery}%,description.ilike.%${filters.searchQuery}%`);
+        query = query.or(`customer_name.ilike.%${filters.searchQuery}%,customer_number.ilike.%${filters.searchQuery}%,document_number.ilike.%${filters.searchQuery}%,description.ilike.%${filters.searchQuery}%`);
       }
 
       const { data, error } = await query;
@@ -178,13 +235,14 @@ export default function AccountsLedger() {
     }
   }, [filters, offset]);
 
-  // Load summary
+  // Load summary using new function
   const loadSummary = useCallback(async () => {
     try {
       const { data, error } = await supabase
-        .rpc('get_ledger_summary', {
+        .rpc('get_ledger_summary_v2', {
           p_from_date: filters.fromDate || null,
-          p_to_date: filters.toDate || null
+          p_to_date: filters.toDate || null,
+          p_lead_id: filters.customerId || null
         });
 
       if (error) throw error;
@@ -193,14 +251,69 @@ export default function AccountsLedger() {
       }
     } catch (error) {
       console.error('Error loading summary:', error);
+      // Fallback: calculate from entries if function doesn't exist yet
+      if (entries.length > 0) {
+        const summary = entries.reduce((acc, entry) => {
+          if (entry.entry_type === 'invoice') acc.total_invoiced += entry.debit;
+          if (entry.entry_type === 'payment') acc.total_paid += entry.credit;
+          if (entry.entry_type === 'credit_note') acc.total_credit_notes += entry.credit;
+          if (entry.entry_type === 'refund') acc.total_refunds += entry.debit;
+          acc.net_receivables += (entry.debit - entry.credit);
+          acc.transaction_count++;
+          return acc;
+        }, { total_invoiced: 0, total_paid: 0, total_credit_notes: 0, total_refunds: 0, net_receivables: 0, transaction_count: 0 });
+        setSummary(summary);
+      }
     }
-  }, [filters.fromDate, filters.toDate]);
+  }, [filters.fromDate, filters.toDate, filters.customerId, entries]);
+
+  // Open customer account modal
+  const openCustomerModal = async (leadId: string) => {
+    setLoadingLead(leadId);
+    try {
+      const { data: lead, error } = await supabase
+        .from('leads')
+        .select('*')
+        .eq('id', leadId)
+        .single();
+
+      if (error) throw error;
+      
+      if (lead) {
+        setSelectedLead(lead);
+        setShowAccountModal(true);
+      }
+    } catch (error) {
+      console.error('Error loading lead:', error);
+    } finally {
+      setLoadingLead(null);
+    }
+  };
+
+  // Download PDF
+  const downloadPdf = (url: string, documentNumber: string) => {
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${documentNumber}.pdf`;
+    link.target = '_blank';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   // Initial load
   useEffect(() => {
     loadEntries(true);
     loadSummary();
+    loadCustomers();
   }, []);
+
+  // Update summary when entries change
+  useEffect(() => {
+    if (entries.length > 0) {
+      loadSummary();
+    }
+  }, [entries]);
 
   // Reload when filters change
   const applyFilters = () => {
@@ -213,37 +326,44 @@ export default function AccountsLedger() {
       fromDate: '',
       toDate: '',
       transactionType: '',
-      searchQuery: ''
+      searchQuery: '',
+      customerId: ''
     });
+    setSelectedCustomerDisplay('');
     setTimeout(() => {
       loadEntries(true);
       loadSummary();
     }, 0);
   };
 
-  const hasActiveFilters = filters.fromDate || filters.toDate || filters.transactionType || filters.searchQuery;
+  const selectCustomer = (customer: Customer) => {
+    setFilters(prev => ({ ...prev, customerId: customer.id }));
+    setSelectedCustomerDisplay(`${customer.customer_number} • ${customer.full_name}`);
+    setShowCustomerDropdown(false);
+    setCustomerSearch('');
+  };
+
+  const clearCustomer = () => {
+    setFilters(prev => ({ ...prev, customerId: '' }));
+    setSelectedCustomerDisplay('');
+  };
+
+  const hasActiveFilters = filters.fromDate || filters.toDate || filters.transactionType || filters.searchQuery || filters.customerId;
 
   // Export to Excel
   const handleExport = async () => {
     try {
-      // Fetch all entries (no pagination) for export
       let query = supabase
-        .from('uv_accounts_ledger')
+        .from('uv_ledger_entries')
         .select('*')
         .order('transaction_date', { ascending: false });
 
-      // Apply current filters
-      if (filters.fromDate) {
-        query = query.gte('transaction_date', filters.fromDate);
-      }
-      if (filters.toDate) {
-        query = query.lte('transaction_date', filters.toDate + 'T23:59:59');
-      }
-      if (filters.transactionType) {
-        query = query.eq('transaction_type', filters.transactionType);
-      }
+      if (filters.fromDate) query = query.gte('transaction_date', filters.fromDate);
+      if (filters.toDate) query = query.lte('transaction_date', filters.toDate);
+      if (filters.transactionType) query = query.eq('entry_type', filters.transactionType);
+      if (filters.customerId) query = query.eq('lead_id', filters.customerId);
       if (filters.searchQuery) {
-        query = query.or(`customer_name.ilike.%${filters.searchQuery}%,reference.ilike.%${filters.searchQuery}%`);
+        query = query.or(`customer_name.ilike.%${filters.searchQuery}%,customer_number.ilike.%${filters.searchQuery}%,document_number.ilike.%${filters.searchQuery}%`);
       }
 
       const { data, error } = await query;
@@ -254,51 +374,46 @@ export default function AccountsLedger() {
         return;
       }
 
-      // Format data for Excel
       const excelData = data.map(entry => ({
         'Date': new Date(entry.transaction_date).toLocaleDateString('en-GB'),
-        'Time': new Date(entry.transaction_date).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-        'Type': entry.transaction_type.replace('_', ' ').toUpperCase(),
-        'Reference': entry.reference,
-        'Customer': entry.customer_name,
+        'Posted': new Date(entry.posted_at).toLocaleString('en-GB'),
+        'Type': getTransactionLabel(entry.entry_type),
+        'Reference': entry.document_number,
         'Customer #': entry.customer_number || '',
+        'Customer': entry.customer_name,
         'Description': entry.description,
         'Debit (AED)': entry.debit > 0 ? entry.debit : '',
         'Credit (AED)': entry.credit > 0 ? entry.credit : '',
-        'Customer Balance': entry.customer_balance
       }));
 
-      // Create workbook and worksheet
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(excelData);
 
-      // Set column widths
       ws['!cols'] = [
-        { wch: 12 }, // Date
-        { wch: 8 },  // Time
-        { wch: 12 }, // Type
-        { wch: 15 }, // Reference
-        { wch: 25 }, // Customer
-        { wch: 12 }, // Customer #
-        { wch: 40 }, // Description
-        { wch: 15 }, // Debit
-        { wch: 15 }, // Credit
-        { wch: 15 }, // Balance
+        { wch: 12 }, { wch: 18 }, { wch: 12 }, { wch: 15 },
+        { wch: 12 }, { wch: 25 }, { wch: 40 }, { wch: 15 }, { wch: 15 }
       ];
 
-      XLSX.utils.book_append_sheet(wb, ws, 'Customer Ledger');
+      XLSX.utils.book_append_sheet(wb, ws, 'Ledger');
 
-      // Generate filename with date
       const dateStr = new Date().toISOString().split('T')[0];
-      const filename = `Customer_Ledger_${dateStr}.xlsx`;
-
-      // Download
-      XLSX.writeFile(wb, filename);
+      XLSX.writeFile(wb, `Ledger_${dateStr}.xlsx`);
     } catch (error) {
       console.error('Error exporting:', error);
       alert('Error exporting data');
     }
   };
+
+  // Calculate running balance for display
+  const calculateRunningBalance = (entries: LedgerEntry[]) => {
+    let balance = 0;
+    return [...entries].reverse().map(entry => {
+      balance += (entry.debit - entry.credit);
+      return { ...entry, runningBalance: balance };
+    }).reverse();
+  };
+
+  const entriesWithBalance = calculateRunningBalance(entries);
 
   return (
     <div className="h-full flex flex-col bg-black text-white">
@@ -307,7 +422,7 @@ export default function AccountsLedger() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-xl font-bold text-white">Customer Ledger</h1>
-            <p className="text-sm text-white/50">All customer transactions in chronological order</p>
+            <p className="text-sm text-white/50">All customer transactions • Click row to open account</p>
           </div>
           <div className="flex items-center gap-3">
             <button
@@ -388,7 +503,63 @@ export default function AccountsLedger() {
         {/* Filters Panel */}
         {showFilters && (
           <div className="bg-white/5 border border-white/10 rounded-xl p-4 mb-4">
-            <div className="grid grid-cols-5 gap-4">
+            <div className="grid grid-cols-6 gap-4">
+              {/* Customer Filter */}
+              <div className="col-span-2 relative">
+                <label className="block text-xs text-white/50 mb-1">Customer (CIN or Name)</label>
+                {selectedCustomerDisplay ? (
+                  <div className="flex items-center gap-2 px-3 py-2 bg-black border border-white/20 rounded-lg">
+                    <span className="text-white text-sm flex-1 truncate">{selectedCustomerDisplay}</span>
+                    <button onClick={clearCustomer} className="text-white/40 hover:text-white">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                    <input
+                      type="text"
+                      value={customerSearch}
+                      onChange={(e) => {
+                        setCustomerSearch(e.target.value);
+                        loadCustomers(e.target.value);
+                        setShowCustomerDropdown(true);
+                      }}
+                      onFocus={() => {
+                        loadCustomers(customerSearch);
+                        setShowCustomerDropdown(true);
+                      }}
+                      placeholder="Search CIN-1057, John..."
+                      className="w-full pl-9 pr-3 py-2 bg-black border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:border-white/40 placeholder:text-white/30"
+                    />
+                    {showCustomerDropdown && (
+                      <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-black border border-white/20 rounded-lg shadow-xl max-h-60 overflow-auto">
+                        {loadingCustomers ? (
+                          <div className="p-3 text-center text-white/50">
+                            <Loader2 className="w-4 h-4 animate-spin inline mr-2" />
+                            Loading...
+                          </div>
+                        ) : customers.length === 0 ? (
+                          <div className="p-3 text-center text-white/50">No customers found</div>
+                        ) : (
+                          customers.map(customer => (
+                            <button
+                              key={customer.id}
+                              onClick={() => selectCustomer(customer)}
+                              className="w-full px-3 py-2 text-left hover:bg-white/10 transition-colors"
+                            >
+                              <span className="text-amber-400 font-mono text-xs">{customer.customer_number}</span>
+                              <span className="text-white/30 mx-2">•</span>
+                              <span className="text-white text-sm">{customer.full_name}</span>
+                            </button>
+                          ))
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+
               <div>
                 <label className="block text-xs text-white/50 mb-1">From Date</label>
                 <input
@@ -408,7 +579,7 @@ export default function AccountsLedger() {
                 />
               </div>
               <div>
-                <label className="block text-xs text-white/50 mb-1">Transaction Type</label>
+                <label className="block text-xs text-white/50 mb-1">Type</label>
                 <select
                   value={filters.transactionType}
                   onChange={(e) => setFilters(prev => ({ ...prev, transactionType: e.target.value }))}
@@ -419,20 +590,8 @@ export default function AccountsLedger() {
                   <option value="payment">Payments</option>
                   <option value="credit_note">Credit Notes</option>
                   <option value="refund">Refunds</option>
+                  <option value="invoice_reversal">Reversals</option>
                 </select>
-              </div>
-              <div>
-                <label className="block text-xs text-white/50 mb-1">Search</label>
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-                  <input
-                    type="text"
-                    value={filters.searchQuery}
-                    onChange={(e) => setFilters(prev => ({ ...prev, searchQuery: e.target.value }))}
-                    placeholder="Customer, reference..."
-                    className="w-full pl-9 pr-3 py-2 bg-black border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:border-white/40 placeholder:text-white/30"
-                  />
-                </div>
               </div>
               <div className="flex items-end gap-2">
                 <button
@@ -456,6 +615,14 @@ export default function AccountsLedger() {
         )}
       </div>
 
+      {/* Click outside to close customer dropdown */}
+      {showCustomerDropdown && (
+        <div 
+          className="fixed inset-0 z-40" 
+          onClick={() => setShowCustomerDropdown(false)} 
+        />
+      )}
+
       {/* Table */}
       <div className="flex-1 overflow-auto">
         {loading ? (
@@ -472,56 +639,68 @@ export default function AccountsLedger() {
           <table className="w-full">
             <thead className="sticky top-0 bg-black/95 backdrop-blur-sm z-10">
               <tr className="border-b border-white/10">
-                <th className="px-4 py-3 text-left text-xs font-medium text-white/50 uppercase tracking-wider w-40">
-                  Date & Time
-                </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-white/50 uppercase tracking-wider w-28">
+                  Date
+                </th>
+                <th className="px-4 py-3 text-left text-xs font-medium text-white/50 uppercase tracking-wider w-24">
                   Type
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-white/50 uppercase tracking-wider w-32">
                   Reference
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white/50 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-white/50 uppercase tracking-wider w-48">
                   Customer
                 </th>
                 <th className="px-4 py-3 text-left text-xs font-medium text-white/50 uppercase tracking-wider">
                   Description
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-white/50 uppercase tracking-wider w-32">
+                <th className="px-4 py-3 text-right text-xs font-medium text-white/50 uppercase tracking-wider w-28">
                   Debit
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-white/50 uppercase tracking-wider w-32">
+                <th className="px-4 py-3 text-right text-xs font-medium text-white/50 uppercase tracking-wider w-28">
                   Credit
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-white/50 uppercase tracking-wider w-36">
-                  Customer Bal
+                <th className="px-4 py-3 text-right text-xs font-medium text-white/50 uppercase tracking-wider w-32">
+                  Balance
+                </th>
+                <th className="px-4 py-3 text-center text-xs font-medium text-white/50 uppercase tracking-wider w-16">
+                  PDF
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {entries.map((entry, index) => {
-                const { date, time } = formatDateTime(entry.transaction_date);
+              {entriesWithBalance.map((entry, index) => {
+                const { date } = formatDateTime(entry.transaction_date);
+                const isLoading = loadingLead === entry.lead_id;
                 return (
                   <tr 
-                    key={`${entry.source_id}-${index}`}
-                    className="hover:bg-white/5 transition-colors cursor-pointer"
+                    key={entry.id}
+                    onClick={() => openCustomerModal(entry.lead_id)}
+                    className="hover:bg-white/5 transition-colors cursor-pointer group"
                   >
                     <td className="px-4 py-3">
                       <div className="text-sm text-white">{date}</div>
-                      <div className="text-xs text-white/40">{time}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium ${getTransactionColor(entry.transaction_type)}`}>
-                        {getTransactionIcon(entry.transaction_type)}
-                        {getTransactionLabel(entry.transaction_type)}
+                      <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium ${getTransactionColor(entry.entry_type)}`}>
+                        {getTransactionIcon(entry.entry_type)}
+                        {getTransactionLabel(entry.entry_type)}
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <span className="text-sm font-mono text-white/80">{entry.reference}</span>
+                      <span className="text-sm font-mono text-amber-400">{entry.document_number}</span>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-sm text-white">{entry.customer_name}</div>
-                      <div className="text-xs text-white/40">{entry.customer_number || entry.customer_phone}</div>
+                      <div className="flex items-center gap-2">
+                        {isLoading && <Loader2 className="w-3 h-3 animate-spin text-white/50" />}
+                        <div>
+                          <div className="text-sm text-white group-hover:text-amber-400 transition-colors">
+                            {entry.customer_name}
+                          </div>
+                          <div className="text-xs text-white/40 font-mono">{entry.customer_number}</div>
+                        </div>
+                        <ExternalLink className="w-3 h-3 text-white/20 group-hover:text-white/50 transition-colors" />
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <div className="text-sm text-white/70 truncate max-w-xs" title={entry.description}>
@@ -548,15 +727,28 @@ export default function AccountsLedger() {
                     </td>
                     <td className="px-4 py-3 text-right">
                       <span className={`text-sm font-medium ${
-                        entry.customer_balance > 0 
-                          ? 'text-red-400' 
-                          : entry.customer_balance < 0 
+                        (entry as any).runningBalance > 0 
+                          ? 'text-white' 
+                          : (entry as any).runningBalance < 0 
                             ? 'text-green-400' 
                             : 'text-white/50'
                       }`}>
-                        {formatCurrency(Math.abs(entry.customer_balance))}
-                        {entry.customer_balance < 0 && ' CR'}
+                        {formatCurrency(Math.abs((entry as any).runningBalance))}
+                        {(entry as any).runningBalance < 0 && ' CR'}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
+                      {entry.pdf_url ? (
+                        <button
+                          onClick={() => downloadPdf(entry.pdf_url!, entry.document_number)}
+                          className="p-1.5 text-white/40 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                          title="Download PDF"
+                        >
+                          <FileDown className="w-4 h-4" />
+                        </button>
+                      ) : (
+                        <span className="text-white/20">-</span>
+                      )}
                     </td>
                   </tr>
                 );
@@ -601,7 +793,20 @@ export default function AccountsLedger() {
           </span>
         </div>
       </div>
+
+      {/* Account Modal */}
+      {showAccountModal && selectedLead && (
+        <SalesOrderModal
+          isOpen={showAccountModal}
+          onClose={() => {
+            setShowAccountModal(false);
+            setSelectedLead(null);
+          }}
+          lead={selectedLead}
+          onSalesOrderCreated={() => loadEntries(true)}
+          onSalesOrderUpdated={() => loadEntries(true)}
+        />
+      )}
     </div>
   );
 }
-

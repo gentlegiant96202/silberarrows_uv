@@ -4294,24 +4294,27 @@ export default function SalesOrderModal({
                       <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
                         <div className="flex items-center justify-between">
                           <p className="text-xs font-semibold text-white/80 uppercase">Bank Quotation</p>
-                          {selectedBfApp.bank_quotation_pdf_url ? (
-                            <button
-                              onClick={() => window.open(selectedBfApp.bank_quotation_pdf_url, '_blank')}
-                              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-400 bg-green-400/10 hover:bg-green-400/20 rounded transition-colors"
-                            >
-                              <Download className="w-3 h-3" />
-                              Download PDF
-                            </button>
-                          ) : (
+                          <div className="flex items-center gap-2">
+                            {/* Always regenerate PDF when clicked - ensures latest data */}
                             <button
                               onClick={handleGenerateBankQuotation}
                               disabled={generatingBankQuotation}
-                              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-white/70 bg-white/10 hover:bg-white/20 rounded transition-colors"
+                              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-black bg-white hover:bg-white/90 rounded transition-colors disabled:opacity-50"
                             >
-                              {generatingBankQuotation ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
-                              Generate Quotation
+                              {generatingBankQuotation ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
+                              {generatingBankQuotation ? 'Generating...' : 'Download PDF'}
                             </button>
-                          )}
+                            {/* Quick view last generated PDF if exists */}
+                            {selectedBfApp.bank_quotation_pdf_url && (
+                              <button
+                                onClick={() => window.open(selectedBfApp.bank_quotation_pdf_url, '_blank')}
+                                className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-white/50 hover:text-white/70 transition-colors"
+                                title="View last generated PDF"
+                              >
+                                <ExternalLink className="w-3 h-3" />
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <div className="grid grid-cols-3 gap-4 text-sm">
                           <div>

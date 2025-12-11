@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 80" width="300" height="80">
+  <defs>
+    <style>
+      .sig { 
+        fill: none; 
+        stroke: #1a3a6e; 
+        stroke-width: 2; 
+        stroke-linecap: round; 
+        stroke-linejoin: round;
+      }
+    </style>
+  </defs>
+  <!-- G -->
+  <path class="sig" d="M25 25 Q15 25 12 35 Q10 50 20 55 Q30 60 38 50 L38 40 L30 40"/>
+  <!-- l -->
+  <path class="sig" d="M48 20 L48 55"/>
+  <!-- e -->
+  <path class="sig" d="M55 42 Q65 38 68 45 Q70 52 60 55 Q52 55 55 48"/>
+  <!-- n -->
+  <path class="sig" d="M75 55 L75 40 Q75 35 85 35 Q92 35 92 45 L92 55"/>
+  
+  <!-- Connecting flourish -->
+  <path class="sig" d="M95 50 Q110 30 130 45"/>
+  
+  <!-- H -->
+  <path class="sig" d="M125 25 L125 55 M125 40 L145 40 M145 25 L145 55"/>
+  <!-- a -->
+  <path class="sig" d="M155 45 Q155 38 165 38 Q172 38 172 45 L172 55 M172 45 Q172 52 162 55 Q155 55 155 48"/>
+  <!-- w -->
+  <path class="sig" d="M180 38 L185 55 L192 42 L199 55 L204 38"/>
+  <!-- k -->
+  <path class="sig" d="M212 25 L212 55 M225 38 L212 48 L228 55"/>
+  <!-- i -->
+  <path class="sig" d="M235 38 L235 55 M235 30 L235 32"/>
+  <!-- n -->
+  <path class="sig" d="M245 55 L245 40 Q245 35 255 35 Q262 35 262 45 L262 55"/>
+  <!-- s -->
+  <path class="sig" d="M275 40 Q268 38 268 43 Q268 48 275 48 Q282 48 282 53 Q282 58 272 55"/>
+  
+  <!-- Underline flourish -->
+  <path class="sig" d="M20 65 Q80 70 150 62 Q220 55 280 65" stroke-width="1.5"/>
+</svg>
+

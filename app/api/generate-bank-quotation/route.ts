@@ -21,12 +21,15 @@ interface BankQuotationData {
   vehicleMileage: string;
   // Pricing (inflated for bank)
   bankQuotationPrice: number;
+  bankDownPayment: number;
+  bankDownPaymentPct: number;
+  amountDue: number; // What bank will finance
   // Bank details
   bankName: string;
 }
 
 // Generate HTML content for Bank Quotation document
-function generateBankQuotationHTML(data: BankQuotationData, logoSrc: string) {
+function generateBankQuotationHTML(data: BankQuotationData, logoSrc: string, stampSrc: string, signatureSrc: string) {
   const documentTitle = 'BANK FINANCE QUOTATION';
   
   // Safely handle string values
@@ -69,7 +72,7 @@ function generateBankQuotationHTML(data: BankQuotationData, logoSrc: string) {
       <style>
         @page {
           margin: 0;
-          background: radial-gradient(ellipse at center, #1a1a1a 0%, #000000 70%, #000000 100%);
+          background: #ffffff;
         }
         
         * {
@@ -79,8 +82,8 @@ function generateBankQuotationHTML(data: BankQuotationData, logoSrc: string) {
         }
         
         body {
-          background: radial-gradient(ellipse at center, #1a1a1a 0%, #000000 70%, #000000 100%);
-          color: white;
+          background: #ffffff;
+          color: #1a1a1a;
           font-family: 'Arial', sans-serif;
           font-size: 10px;
           line-height: 1.25;
@@ -89,126 +92,78 @@ function generateBankQuotationHTML(data: BankQuotationData, logoSrc: string) {
           margin: 0;
           padding: 0;
           overflow: hidden;
-          box-sizing: border-box;
         }
 
         .page {
-          background: rgba(255, 255, 255, 0.02);
-          border: none;
-          padding: 15px 10px 15px 10px;
+          background: #ffffff;
+          padding: 15px 20px;
           width: 210mm;
           height: 297mm;
           position: relative;
           overflow: hidden;
-          box-sizing: border-box;
           display: flex;
           flex-direction: column;
-          justify-content: flex-start;
         }
 
         .header {
           display: flex;
           justify-content: space-between;
           align-items: flex-start;
-          margin: 0 0 25px 0;
-          padding: 10px 15px 8px 15px;
-          background: rgba(255, 255, 255, 0.08);
-          border: 1px solid rgba(255, 255, 255, 0.15);
-          border-radius: 15px;
+          margin: 0 0 20px 0;
+          padding: 12px 18px 10px 18px;
+          background: #f8f8f8;
+          border: 1px solid #e0e0e0;
+          border-radius: 12px;
           position: relative;
-          z-index: 2;
-          width: 100%;
-          box-sizing: border-box;
-        }
-
-        .header::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(135deg, 
-            rgba(255, 255, 255, 0.1) 0%, 
-            rgba(255, 255, 255, 0.02) 50%, 
-            rgba(255, 255, 255, 0.08) 100%);
-          border-radius: 15px;
-          pointer-events: none;
         }
 
         .title-section {
           display: flex;
           flex-direction: column;
           align-items: flex-start;
-          position: relative;
-          z-index: 3;
         }
 
         .title {
-          font-size: 21px;
+          font-size: 20px;
           font-weight: 900;
-          color: white;
-          margin-bottom: 8px;
+          color: #1a1a1a;
           letter-spacing: 0.5px;
           line-height: 1.1;
         }
 
         .logo {
-          width: 55px;
+          width: 70px;
           height: auto;
-          position: relative;
-          z-index: 3;
         }
 
         .content-container {
           position: relative;
-          z-index: 1;
           width: 100%;
           flex: 1 1 auto;
-          overflow: visible;
-          box-sizing: border-box;
           display: flex;
           flex-direction: column;
-          gap: 12px;
+          gap: 8px;
         }
 
         .section {
           margin: 0;
-          background: rgba(255, 255, 255, 0.04);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          border-radius: 12px;
-          padding: 10px 12px;
+          background: #fafafa;
+          border: 1px solid #e5e5e5;
+          border-radius: 10px;
+          padding: 10px 14px;
           position: relative;
           width: 100%;
-          box-sizing: border-box;
-        }
-
-        .section::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          bottom: 0;
-          background: linear-gradient(135deg, 
-            rgba(255, 255, 255, 0.06) 0%, 
-            rgba(255, 255, 255, 0.01) 50%, 
-            rgba(255, 255, 255, 0.04) 100%);
-          border-radius: 12px;
-          pointer-events: none;
         }
 
         .section-title {
-          font-size: 12px;
+          font-size: 11px;
           font-weight: bold;
-          margin-bottom: 8px;
-          color: white;
+          margin-bottom: 6px;
+          color: #1a1a1a;
           text-transform: uppercase;
           letter-spacing: 1px;
-          position: relative;
-          z-index: 2;
           padding-bottom: 4px;
-          border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+          border-bottom: 1px solid #ddd;
         }
 
         .form-table {
@@ -216,22 +171,18 @@ function generateBankQuotationHTML(data: BankQuotationData, logoSrc: string) {
           border-collapse: separate;
           border-spacing: 0;
           margin: 0;
-          background: rgba(255, 255, 255, 0.03);
-          border-radius: 8px;
+          background: #ffffff;
+          border-radius: 6px;
           overflow: hidden;
-          position: relative;
-          z-index: 2;
-          box-sizing: border-box;
         }
 
         .form-table td {
-          border: 1px solid rgba(255, 255, 255, 0.15);
+          border: 1px solid #e5e5e5;
           padding: 8px 10px;
           vertical-align: middle;
-          color: white;
+          color: #1a1a1a;
           font-size: 10px;
-          background: rgba(255, 255, 255, 0.02);
-          position: relative;
+          background: #ffffff;
         }
 
         .form-table td:first-child {
@@ -251,120 +202,142 @@ function generateBankQuotationHTML(data: BankQuotationData, logoSrc: string) {
         }
 
         .form-table .label {
-          background: rgba(255, 255, 255, 0.08);
+          background: #f5f5f5;
           font-weight: bold;
           width: 25%;
-          color: rgba(255, 255, 255, 0.95);
+          color: #444;
         }
 
         .form-table .data {
           width: 25%;
         }
 
-        .price-section {
-          background: rgba(255, 255, 255, 0.08);
-          border-radius: 12px;
-          padding: 20px;
-          text-align: center;
-          position: relative;
-          z-index: 2;
+        /* Pricing Section - matching sales order style */
+        .pricing-section {
+          margin: 0;
+          background: #fafafa;
+          border: 1px solid #e5e5e5;
+          border-radius: 10px;
+          padding: 10px 14px;
         }
 
-        .price-label {
+        .totals-table {
+          width: 100%;
+          margin-top: 8px;
+        }
+
+        .totals-table td {
+          padding: 6px 10px;
+          font-size: 10px;
+        }
+
+        .totals-table .label-cell {
+          text-align: right;
+          width: 70%;
+          color: #666;
+        }
+
+        .totals-table .value-cell {
+          text-align: right;
+          width: 30%;
+          color: #1a1a1a;
+          font-weight: 600;
+        }
+
+        .totals-table .total-row td {
+          font-weight: bold;
           font-size: 14px;
-          color: rgba(255, 255, 255, 0.8);
-          margin-bottom: 10px;
-          text-transform: uppercase;
-          letter-spacing: 1px;
+          border-top: 2px solid #1a1a1a;
+          padding-top: 10px;
+          color: #1a1a1a;
         }
 
-        .price-value {
-          font-size: 36px;
-          font-weight: 900;
-          color: white;
-          letter-spacing: 1px;
+        .totals-table .subtotal-row td {
+          border-top: 1px solid #ddd;
+          padding-top: 8px;
         }
 
-        .bank-badge {
-          display: inline-block;
-          background: rgba(255, 255, 255, 0.1);
-          border: 1px solid rgba(255, 255, 255, 0.2);
-          border-radius: 20px;
-          padding: 8px 20px;
-          font-size: 11px;
-          color: white;
+        /* Signature Section - matching sales order style */
+        .signature-section {
+          display: flex;
+          justify-content: space-between;
           margin-top: 15px;
+          gap: 40px;
+          padding: 15px;
+          background: #fafafa;
+          border: 1px solid #e5e5e5;
+          border-radius: 10px;
+        }
+
+        .signature-box {
+          flex: 1;
+          text-align: center;
+        }
+
+        .signature-label {
+          font-size: 9px;
           text-transform: uppercase;
           letter-spacing: 1px;
+          color: #666;
+          margin-bottom: 10px;
+          font-weight: bold;
+        }
+
+        .signature-area {
+          background: #ffffff;
+          border: 1px solid #ddd;
+          height: 120px;
+          border-radius: 6px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-bottom: 8px;
+        }
+
+        .signature-area img {
+          max-height: 110px;
+          max-width: 90%;
+          object-fit: contain;
+        }
+
+        .signature-name {
+          font-size: 10px;
+          color: #1a1a1a;
+          font-weight: 600;
+          border-top: 1px solid #1a1a1a;
+          padding-top: 5px;
+          display: inline-block;
+          min-width: 120px;
+        }
+
+        .validity-note {
+          text-align: center;
+          margin-top: 12px;
+          padding: 8px;
+          font-size: 9px;
+          color: #666;
+          font-style: italic;
         }
 
         .footer {
           text-align: center;
           margin-top: auto;
-          padding-top: 15px;
+          padding-top: 12px;
           font-size: 8px;
-          color: rgba(255, 255, 255, 0.7);
-          border-top: 1px solid rgba(255, 255, 255, 0.2);
-          position: relative;
-          z-index: 2;
+          color: #666;
+          border-top: 1px solid #ddd;
         }
 
-        .stamp-section {
-          margin-top: 20px;
-          padding: 15px;
-          background: rgba(255, 255, 255, 0.04);
-          border: 1px solid rgba(255, 255, 255, 0.12);
-          border-radius: 12px;
-          position: relative;
-          z-index: 2;
-        }
-
-        .stamp-box {
-          display: flex;
-          justify-content: space-between;
-          align-items: flex-start;
-          gap: 30px;
-        }
-
-        .stamp-item {
-          flex: 1;
-        }
-
-        .stamp-label {
-          font-size: 10px;
-          color: rgba(255, 255, 255, 0.7);
-          margin-bottom: 8px;
-        }
-
-        .stamp-area {
-          border: 1px dashed rgba(255, 255, 255, 0.3);
-          background: rgba(255, 255, 255, 0.02);
-          height: 80px;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: rgba(255, 255, 255, 0.3);
+        .footer-company {
+          font-weight: bold;
+          color: #1a1a1a;
           font-size: 9px;
+          margin-bottom: 4px;
         }
 
-        .validity-note {
-          font-size: 9px;
-          color: rgba(255, 255, 255, 0.5);
-          text-align: center;
-          margin-top: 10px;
-          font-style: italic;
-        }
-
-        .disclaimer {
-          font-size: 8px;
-          color: rgba(255, 255, 255, 0.5);
-          text-align: center;
-          padding: 10px;
-          border-top: 1px solid rgba(255, 255, 255, 0.1);
-          margin-top: 15px;
-          position: relative;
-          z-index: 2;
+        .footer-trn {
+          color: #888;
+          margin-top: 3px;
         }
       </style>
     </head>
@@ -390,15 +363,15 @@ function generateBankQuotationHTML(data: BankQuotationData, logoSrc: string) {
               <tr>
                 <td class="label">Valid Until:</td>
                 <td class="data">${formatDate(data.validUntil)}</td>
-                <td class="label">Prepared For:</td>
-                <td class="data">${safeString(data.bankName)}</td>
+                <td class="label">Status:</td>
+                <td class="data"><strong>QUOTATION</strong></td>
               </tr>
             </table>
           </div>
 
           <!-- CUSTOMER SECTION -->
           <div class="section">
-            <div class="section-title">CUSTOMER DETAILS</div>
+            <div class="section-title">Customer</div>
             <table class="form-table">
               <tr>
                 <td class="label">Customer Name:</td>
@@ -417,17 +390,17 @@ function generateBankQuotationHTML(data: BankQuotationData, logoSrc: string) {
 
           <!-- VEHICLE SECTION -->
           <div class="section">
-            <div class="section-title">VEHICLE DETAILS</div>
+            <div class="section-title">Vehicle</div>
             <table class="form-table">
               <tr>
                 <td class="label">Make & Model:</td>
-                <td class="data">${safeString(data.vehicleMakeModel)}</td>
+                <td class="data"><strong>${safeString(data.vehicleMakeModel)}</strong></td>
                 <td class="label">Model Year:</td>
                 <td class="data">${safeString(data.modelYear)}</td>
               </tr>
               <tr>
                 <td class="label">Chassis No.:</td>
-                <td class="data">${safeString(data.chassisNo)}</td>
+                <td class="data" style="font-family: monospace;">${safeString(data.chassisNo)}</td>
                 <td class="label">Colour:</td>
                 <td class="data">${safeString(data.vehicleColour)}</td>
               </tr>
@@ -441,40 +414,50 @@ function generateBankQuotationHTML(data: BankQuotationData, logoSrc: string) {
           </div>
 
           <!-- PRICING SECTION -->
-          <div class="section">
-            <div class="section-title">VEHICLE PRICE</div>
-            <div class="price-section">
-              <div class="price-label">Total Vehicle Price (Including VAT)</div>
-              <div class="price-value">${formatCurrency(data.bankQuotationPrice)}</div>
-              <div class="bank-badge">For ${safeString(data.bankName)} Finance</div>
+          <div class="pricing-section">
+            <div class="section-title">Pricing</div>
+            <table class="totals-table">
+              <tr>
+                <td class="label-cell">Vehicle Price (Including VAT):</td>
+                <td class="value-cell">${formatCurrency(data.bankQuotationPrice)}</td>
+              </tr>
+              <tr class="subtotal-row">
+                <td class="label-cell">Down Payment (${safeNumber(data.bankDownPaymentPct)}%):</td>
+                <td class="value-cell">${formatCurrency(data.bankDownPayment)}</td>
+              </tr>
+              <tr class="total-row">
+                <td class="label-cell">Amount to Finance:</td>
+                <td class="value-cell">${formatCurrency(data.amountDue)}</td>
+              </tr>
+            </table>
+          </div>
+
+          <!-- SIGNATURE SECTION -->
+          <div class="signature-section">
+            <div class="signature-box">
+              <div class="signature-label">Company Stamp</div>
+              <div class="signature-area">
+                ${stampSrc ? `<img src="${stampSrc}" alt="Company Stamp">` : ''}
+              </div>
+            </div>
+            <div class="signature-box">
+              <div class="signature-label">Authorized Signature</div>
+              <div class="signature-area">
+                ${signatureSrc ? `<img src="${signatureSrc}" alt="Signature">` : ''}
+              </div>
+              <div class="signature-name">Glen Hawkins</div>
             </div>
           </div>
 
-          <!-- STAMP & SIGNATURE -->
-          <div class="stamp-section">
-            <div class="stamp-box">
-              <div class="stamp-item">
-                <div class="stamp-label">Company Stamp</div>
-                <div class="stamp-area">COMPANY STAMP</div>
-              </div>
-              <div class="stamp-item">
-                <div class="stamp-label">Authorized Signature</div>
-                <div class="stamp-area">SIGNATURE</div>
-              </div>
-            </div>
-            <div class="validity-note">
-              This quotation is valid until ${formatDate(data.validUntil)}. Prices are subject to change without prior notice.
-            </div>
-          </div>
-
-          <div class="disclaimer">
-            This quotation is issued for bank finance purposes only. The vehicle price stated above includes all applicable taxes.
-            Terms and conditions apply. Subject to vehicle availability.
+          <div class="validity-note">
+            This quotation is valid until ${formatDate(data.validUntil)}
           </div>
 
           <!-- FOOTER -->
           <div class="footer">
-            Al Manara St., Al Quoz 1, Dubai, UAE, P.O. Box 185095 | TRN: 100281137800003 | Tel: +971 4 380 5515 | sales@silberarrows.com | www.silberarrows.com
+            <div class="footer-company">SilberArrows Used Car Trading L.L.C</div>
+            Al Manara St., Al Quoz 1, Dubai, UAE, P.O. Box 185095 | Tel: +971 4 380 5515 | sales@silberarrows.com | www.silberarrows.com
+            <div class="footer-trn">TRN: 100281137800003</div>
           </div>
         </div>
       </div>
@@ -527,14 +510,57 @@ export async function POST(request: NextRequest) {
       quotationNumber = counterData;
     }
 
-    // Get logo as base64
-    const logoPath = path.join(process.cwd(), 'public', 'silberarrows-logo.png');
-    let logoSrc = '';
+    // Get logo as base64 - use main-logo.png with cloudinary fallback
+    const logoFileCandidates = [
+      path.join(process.cwd(), 'public', 'main-logo.png'),
+      path.join(process.cwd(), 'public', 'MAIN LOGO.png'),
+      path.join(process.cwd(), 'renderer', 'public', 'main-logo.png')
+    ];
+    let logoSrc = 'https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png';
+    for (const candidate of logoFileCandidates) {
+      try {
+        if (fs.existsSync(candidate)) {
+          const logoBuffer = fs.readFileSync(candidate);
+          const b64 = logoBuffer.toString('base64');
+          logoSrc = `data:image/png;base64,${b64}`;
+          break;
+        }
+      } catch (logoError) {
+        console.warn('[generate-bank-quotation] Logo file not found:', candidate);
+      }
+    }
+
+    // Get company stamp as base64
+    const stampFileCandidates = [
+      path.join(process.cwd(), 'public', 'unnamed@1x_1-1.png'),
+      path.join(process.cwd(), 'public', 'company-stamp.png'),
+      path.join(process.cwd(), 'renderer', 'public', 'company-stamp.png')
+    ];
+    let stampSrc = '';
+    for (const candidate of stampFileCandidates) {
+      try {
+        if (fs.existsSync(candidate)) {
+          const stampBuffer = fs.readFileSync(candidate);
+          const b64 = stampBuffer.toString('base64');
+          stampSrc = `data:image/png;base64,${b64}`;
+          break;
+        }
+      } catch (stampError) {
+        console.warn('[generate-bank-quotation] Stamp file not found:', candidate);
+      }
+    }
+
+    // Get signature as base64
+    const signatureFilePath = path.join(process.cwd(), 'public', '4eb96ec09c7c44204b994499cc716641.png');
+    let signatureSrc = '';
     try {
-      const logoBuffer = fs.readFileSync(logoPath);
-      logoSrc = `data:image/png;base64,${logoBuffer.toString('base64')}`;
-    } catch (logoError) {
-      console.warn('[generate-bank-quotation] Logo not found, using empty string');
+      if (fs.existsSync(signatureFilePath)) {
+        const sigBuffer = fs.readFileSync(signatureFilePath);
+        const b64 = sigBuffer.toString('base64');
+        signatureSrc = `data:image/png;base64,${b64}`;
+      }
+    } catch (sigError) {
+      console.warn('[generate-bank-quotation] Signature file not found');
     }
 
     // Prepare data for template
@@ -545,27 +571,36 @@ export async function POST(request: NextRequest) {
     const validUntilDate = application.bank_quotation_valid_until || 
       new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 7 days validity
 
+    // Calculate pricing values
+    const bankQuotationPrice = application.bank_quotation_price || application.actual_vehicle_price || salesOrder.total_amount;
+    const bankDownPaymentPct = application.bank_required_down_pct || 20;
+    const bankDownPayment = application.bank_shown_down_payment || Math.round(bankQuotationPrice * (bankDownPaymentPct / 100));
+    const amountDue = application.bank_finance_amount || (bankQuotationPrice - bankDownPayment);
+
     const quotationData: BankQuotationData = {
       applicationId: application.id,
       quotationNumber,
       quotationDate,
       validUntil: validUntilDate,
-      customerName: lead.full_name || '',
-      customerPhone: lead.phone_number || '',
-      customerEmail: lead.email || salesOrder.customer_email || '',
+      customerName: salesOrder.customer_name || lead.full_name || '',
+      customerPhone: salesOrder.customer_phone || `${lead.country_code || ''}${lead.phone_number || ''}`,
+      customerEmail: salesOrder.customer_email || lead.email || '',
       emiratesId: salesOrder.customer_id_type === 'Emirates ID' ? salesOrder.customer_id_number : '',
       vehicleMakeModel: salesOrder.vehicle_make_model || '',
       modelYear: salesOrder.model_year?.toString() || '',
       chassisNo: salesOrder.chassis_no || '',
       vehicleColour: salesOrder.vehicle_colour || '',
       vehicleMileage: salesOrder.vehicle_mileage?.toString() || '',
-      bankQuotationPrice: application.bank_quotation_price || application.actual_vehicle_price || salesOrder.total_amount,
+      bankQuotationPrice,
+      bankDownPayment,
+      bankDownPaymentPct,
+      amountDue,
       bankName: application.bank_name || 'Bank',
     };
 
     // Generate HTML
     console.log('[generate-bank-quotation] Generating HTML...');
-    const htmlContent = generateBankQuotationHTML(quotationData, logoSrc);
+    const htmlContent = generateBankQuotationHTML(quotationData, logoSrc, stampSrc, signatureSrc);
 
     // Call PDFShift API
     console.log('[generate-bank-quotation] Calling PDFShift API...');

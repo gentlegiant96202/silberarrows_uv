@@ -647,7 +647,7 @@ export default function AccountsLedger() {
                 <th className="px-4 py-3 text-left text-xs font-medium text-white/50 uppercase tracking-wider w-48">
                   Customer
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white/50 uppercase tracking-wider">
+                <th className="px-4 py-3 text-left text-xs font-medium text-white/50 uppercase tracking-wider max-w-[250px]">
                   Description
                 </th>
                 <th className="px-4 py-3 text-right text-xs font-medium text-white/50 uppercase tracking-wider w-28">
@@ -698,8 +698,11 @@ export default function AccountsLedger() {
                         <ExternalLink className="w-3 h-3 text-white/20 group-hover:text-white/50 transition-colors" />
                       </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="text-sm text-white/70 truncate max-w-xs" title={entry.description}>
+                    <td className="px-4 py-3 max-w-[250px]">
+                      <div 
+                        className="text-xs text-white/60 line-clamp-2 leading-relaxed" 
+                        title={entry.description}
+                      >
                         {entry.description}
                       </div>
                     </td>

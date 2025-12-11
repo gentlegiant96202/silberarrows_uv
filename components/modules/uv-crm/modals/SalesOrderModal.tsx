@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/components/shared/AuthProvider';
 import { useModulePermissions } from '@/lib/useModulePermissions';
 import { useIsAdminSimple } from '@/lib/useIsAdminSimple';
-import { X, FileText, ArrowRightLeft, CreditCard, ClipboardList, ChevronDown, ChevronUp, Save, Loader2, Plus, Trash2, ScrollText, ExternalLink } from 'lucide-react';
+import { X, FileText, ArrowRightLeft, CreditCard, ClipboardList, ChevronDown, ChevronUp, Save, Loader2, Plus, Trash2, ScrollText, ExternalLink, Building2, Upload, CheckCircle2, Clock, AlertCircle, XCircle, Download, MessageSquare } from 'lucide-react';
 
 // ===== INTERFACES =====
 interface Lead {
@@ -192,6 +192,113 @@ interface Adjustment {
   pdf_url?: string;
 }
 
+// ===== BANK FINANCE =====
+interface BankFinanceApplication {
+  id: string;
+  sales_order_id: string;
+  lead_id: string;
+  application_number: number;
+  status: 'documents_pending' | 'documents_complete' | 'accounts_review' | 'submitted_to_bank' | 'approved' | 'rejected';
+  // Actual deal
+  actual_vehicle_price: number;
+  actual_customer_down_payment: number;
+  amount_to_finance: number;
+  // Bank quotation
+  bank_name: string;
+  bank_required_down_pct: number;
+  bank_quotation_price: number;
+  bank_shown_down_payment: number;
+  bank_finance_amount: number;
+  bank_quotation_number?: string;
+  bank_quotation_pdf_url?: string;
+  bank_quotation_date?: string;
+  bank_quotation_valid_until?: string;
+  // Applied terms
+  applied_interest_rate?: number;
+  applied_tenure_months?: number;
+  applied_emi?: number;
+  // Approved terms
+  bank_reference?: string;
+  approved_amount?: number;
+  approved_down_payment?: number;
+  approved_interest_rate?: number;
+  approved_tenure_months?: number;
+  approved_emi?: number;
+  first_emi_date?: string;
+  last_emi_date?: string;
+  // Rejection
+  rejection_reason?: string;
+  // Timestamps
+  created_at: string;
+  docs_started_at?: string;
+  docs_completed_at?: string;
+  accounts_received_at?: string;
+  submitted_to_bank_at?: string;
+  decision_at?: string;
+}
+
+interface BankFinanceDocument {
+  id: string;
+  application_id: string;
+  category: 'customer' | 'bank';
+  document_type: string;
+  document_name: string;
+  file_url: string;
+  file_name?: string;
+  uploaded_at: string;
+}
+
+interface BankFinanceActivity {
+  id: string;
+  application_id: string;
+  activity_type: 'note' | 'status_change' | 'document_upload' | 'system';
+  note?: string;
+  old_status?: string;
+  new_status?: string;
+  created_at: string;
+  created_by?: string;
+  user_name?: string;
+}
+
+const banksList = [
+  { value: 'emirates_nbd', label: 'Emirates NBD' },
+  { value: 'adcb', label: 'ADCB' },
+  { value: 'fab', label: 'FAB (First Abu Dhabi Bank)' },
+  { value: 'dib', label: 'Dubai Islamic Bank' },
+  { value: 'mashreq', label: 'Mashreq Bank' },
+  { value: 'rak_bank', label: 'RAK Bank' },
+  { value: 'enbd_islamic', label: 'ENBD Islamic' },
+  { value: 'adib', label: 'ADIB' },
+  { value: 'cbd', label: 'Commercial Bank of Dubai' },
+  { value: 'other', label: 'Other' },
+];
+
+const customerDocTypes = [
+  { value: 'eid_front', label: 'Emirates ID (Front)', required: true },
+  { value: 'eid_back', label: 'Emirates ID (Back)', required: true },
+  { value: 'passport', label: 'Passport Copy', required: true },
+  { value: 'salary_cert', label: 'Salary Certificate', required: false },
+  { value: 'trade_license', label: 'Trade License', required: false },
+  { value: 'bank_statements', label: 'Bank Statements (3 months)', required: true },
+  { value: 'proof_of_address', label: 'Proof of Address', required: false },
+];
+
+const bankDocTypes = [
+  { value: 'loi', label: 'Letter of Intent (LOI)', required: true },
+  { value: 'lpo', label: 'Local Purchase Order (LPO)', required: true },
+  { value: 'finance_agreement', label: 'Finance Agreement', required: false },
+  { value: 'insurance_cert', label: 'Insurance Certificate', required: false },
+];
+
+const bfStatusLabels: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+  documents_pending: { label: 'Docs Pending', color: 'text-amber-400', icon: <Clock className="w-3 h-3" /> },
+  documents_complete: { label: 'Docs Complete', color: 'text-blue-400', icon: <CheckCircle2 className="w-3 h-3" /> },
+  accounts_review: { label: 'Accounts Review', color: 'text-purple-400', icon: <Clock className="w-3 h-3" /> },
+  submitted_to_bank: { label: 'Submitted to Bank', color: 'text-cyan-400', icon: <Building2 className="w-3 h-3" /> },
+  approved: { label: 'Approved', color: 'text-green-400', icon: <CheckCircle2 className="w-3 h-3" /> },
+  rejected: { label: 'Rejected', color: 'text-red-400', icon: <XCircle className="w-3 h-3" /> },
+};
+
 const paymentMethods = [
   { value: 'cash', label: 'Cash' },
   { value: 'card', label: 'Card' },
@@ -218,14 +325,16 @@ const lineTypes = [
 const deductionTypes = ['part_exchange', 'discount'];
 
 // ===== TABS =====
-type TabKey = 'sales_order' | 'invoices' | 'payments' | 'soa';
+type TabKey = 'sales_order' | 'invoices' | 'payments' | 'soa' | 'bank_finance';
 
-const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
+const baseTabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
   { key: 'sales_order', label: 'Sales Order', icon: <FileText className="w-4 h-4" /> },
   { key: 'invoices', label: 'Invoices', icon: <ScrollText className="w-4 h-4" /> },
   { key: 'payments', label: 'Transactions', icon: <ArrowRightLeft className="w-4 h-4" /> },
   { key: 'soa', label: 'SOA', icon: <ClipboardList className="w-4 h-4" /> },
 ];
+
+const bankFinanceTab = { key: 'bank_finance' as TabKey, label: 'Bank Finance', icon: <Building2 className="w-4 h-4" /> };
 
 // ===== STYLING =====
 const inputClass = `
@@ -382,6 +491,41 @@ export default function SalesOrderModal({
   const [soaData, setSoaData] = useState<any[]>([]);
   const [soaBalance, setSoaBalance] = useState<any>(null);
   const [loadingSoa, setLoadingSoa] = useState(false);
+  
+  // Bank Finance state
+  const [bfApplications, setBfApplications] = useState<BankFinanceApplication[]>([]);
+  const [selectedBfApp, setSelectedBfApp] = useState<BankFinanceApplication | null>(null);
+  const [bfDocuments, setBfDocuments] = useState<BankFinanceDocument[]>([]);
+  const [bfActivity, setBfActivity] = useState<BankFinanceActivity[]>([]);
+  const [loadingBankFinance, setLoadingBankFinance] = useState(false);
+  const [showNewBfAppForm, setShowNewBfAppForm] = useState(false);
+  const [savingBfApp, setSavingBfApp] = useState(false);
+  const [uploadingDoc, setUploadingDoc] = useState<string | null>(null);
+  const [generatingBankQuotation, setGeneratingBankQuotation] = useState(false);
+  const [newBfNote, setNewBfNote] = useState('');
+  const [postingNote, setPostingNote] = useState(false);
+  const [newBfApp, setNewBfApp] = useState({
+    bank_name: '',
+    bank_required_down_pct: 20,
+    actual_vehicle_price: 0,
+    actual_customer_down_payment: 0,
+    bank_quotation_price: 0,
+    applied_interest_rate: 0,
+    applied_tenure_months: 48,
+  });
+  const [approvalForm, setApprovalForm] = useState({
+    bank_reference: '',
+    approved_amount: 0,
+    approved_down_payment: 0,
+    approved_interest_rate: 0,
+    approved_tenure_months: 48,
+    approved_emi: 0,
+    first_emi_date: '',
+    last_emi_date: '',
+  });
+  const [showApprovalModal, setShowApprovalModal] = useState(false);
+  const [showRejectionModal, setShowRejectionModal] = useState(false);
+  const [rejectionReason, setRejectionReason] = useState('');
   
   // PDF & DocuSign state
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
@@ -1811,6 +1955,313 @@ export default function SalesOrderModal({
     setFormData(prev => ({ ...prev, [field]: value }));
   };
 
+  // ===== BANK FINANCE FUNCTIONS =====
+  const loadBfApplications = async (salesOrderId: string) => {
+    setLoadingBankFinance(true);
+    try {
+      const { data, error } = await supabase
+        .from('uv_bank_finance_applications')
+        .select('*')
+        .eq('sales_order_id', salesOrderId)
+        .order('application_number', { ascending: true });
+      
+      if (error) throw error;
+      setBfApplications(data || []);
+    } catch (error) {
+      console.error('Error loading bank finance applications:', error);
+    } finally {
+      setLoadingBankFinance(false);
+    }
+  };
+
+  const loadBfAppDetails = async (appId: string) => {
+    try {
+      // Load documents
+      const { data: docs, error: docsError } = await supabase
+        .from('uv_bank_finance_documents')
+        .select('*')
+        .eq('application_id', appId)
+        .order('uploaded_at', { ascending: false });
+      
+      if (!docsError) setBfDocuments(docs || []);
+      
+      // Load activity
+      const { data: activity, error: actError } = await supabase
+        .from('uv_bank_finance_activity')
+        .select('*')
+        .eq('application_id', appId)
+        .order('created_at', { ascending: false });
+      
+      if (!actError) setBfActivity(activity || []);
+    } catch (error) {
+      console.error('Error loading bank finance details:', error);
+    }
+  };
+
+  const handleCreateBfApplication = async () => {
+    if (!existingSalesOrder) return;
+    
+    setSavingBfApp(true);
+    try {
+      // Calculate amounts
+      const amountToFinance = newBfApp.actual_vehicle_price - newBfApp.actual_customer_down_payment;
+      const bankShownDownPayment = newBfApp.bank_quotation_price * (newBfApp.bank_required_down_pct / 100);
+      const bankFinanceAmount = newBfApp.bank_quotation_price - bankShownDownPayment;
+      const appliedEmi = newBfApp.applied_tenure_months > 0 ? bankFinanceAmount / newBfApp.applied_tenure_months : 0;
+
+      // Get next application number
+      const { data: nextNum } = await supabase.rpc('get_next_bf_application_number', {
+        p_sales_order_id: existingSalesOrder.id
+      });
+
+      const { data, error } = await supabase
+        .from('uv_bank_finance_applications')
+        .insert({
+          sales_order_id: existingSalesOrder.id,
+          lead_id: lead.id,
+          application_number: nextNum || 1,
+          status: 'documents_pending',
+          bank_name: newBfApp.bank_name,
+          actual_vehicle_price: newBfApp.actual_vehicle_price,
+          actual_customer_down_payment: newBfApp.actual_customer_down_payment,
+          amount_to_finance: amountToFinance,
+          bank_required_down_pct: newBfApp.bank_required_down_pct,
+          bank_quotation_price: newBfApp.bank_quotation_price,
+          bank_shown_down_payment: Math.round(bankShownDownPayment),
+          bank_finance_amount: Math.round(bankFinanceAmount),
+          applied_interest_rate: newBfApp.applied_interest_rate,
+          applied_tenure_months: newBfApp.applied_tenure_months,
+          applied_emi: Math.round(appliedEmi),
+          created_by: user?.id,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Add system activity
+      await supabase.from('uv_bank_finance_activity').insert({
+        application_id: data.id,
+        activity_type: 'system',
+        note: `Application created for ${newBfApp.bank_name}`,
+        created_by: user?.id,
+      });
+
+      setShowNewBfAppForm(false);
+      await loadBfApplications(existingSalesOrder.id);
+    } catch (error: any) {
+      console.error('Error creating bank finance application:', error);
+      alert('Error creating application: ' + error.message);
+    } finally {
+      setSavingBfApp(false);
+    }
+  };
+
+  const handleBfStatusChange = async (newStatus: string) => {
+    if (!selectedBfApp) return;
+    
+    setSavingBfApp(true);
+    try {
+      const { error } = await supabase
+        .from('uv_bank_finance_applications')
+        .update({ status: newStatus })
+        .eq('id', selectedBfApp.id);
+
+      if (error) throw error;
+
+      // Update local state
+      setSelectedBfApp(prev => prev ? { ...prev, status: newStatus as any } : null);
+      await loadBfAppDetails(selectedBfApp.id);
+      if (existingSalesOrder) await loadBfApplications(existingSalesOrder.id);
+    } catch (error: any) {
+      console.error('Error updating status:', error);
+      alert('Error updating status: ' + error.message);
+    } finally {
+      setSavingBfApp(false);
+    }
+  };
+
+  const handleBfApproval = async () => {
+    if (!selectedBfApp) return;
+    
+    setSavingBfApp(true);
+    try {
+      const { error } = await supabase
+        .from('uv_bank_finance_applications')
+        .update({
+          status: 'approved',
+          bank_reference: approvalForm.bank_reference,
+          approved_amount: approvalForm.approved_amount,
+          approved_down_payment: approvalForm.approved_down_payment,
+          approved_interest_rate: approvalForm.approved_interest_rate,
+          approved_tenure_months: approvalForm.approved_tenure_months,
+          approved_emi: approvalForm.approved_emi,
+          first_emi_date: approvalForm.first_emi_date || null,
+          last_emi_date: approvalForm.last_emi_date || null,
+        })
+        .eq('id', selectedBfApp.id);
+
+      if (error) throw error;
+
+      setShowApprovalModal(false);
+      setSelectedBfApp(prev => prev ? { ...prev, status: 'approved', ...approvalForm } : null);
+      await loadBfAppDetails(selectedBfApp.id);
+      if (existingSalesOrder) await loadBfApplications(existingSalesOrder.id);
+    } catch (error: any) {
+      console.error('Error approving application:', error);
+      alert('Error: ' + error.message);
+    } finally {
+      setSavingBfApp(false);
+    }
+  };
+
+  const handleBfRejection = async () => {
+    if (!selectedBfApp) return;
+    
+    setSavingBfApp(true);
+    try {
+      const { error } = await supabase
+        .from('uv_bank_finance_applications')
+        .update({
+          status: 'rejected',
+          rejection_reason: rejectionReason,
+        })
+        .eq('id', selectedBfApp.id);
+
+      if (error) throw error;
+
+      setShowRejectionModal(false);
+      setRejectionReason('');
+      setSelectedBfApp(prev => prev ? { ...prev, status: 'rejected', rejection_reason: rejectionReason } : null);
+      await loadBfAppDetails(selectedBfApp.id);
+      if (existingSalesOrder) await loadBfApplications(existingSalesOrder.id);
+    } catch (error: any) {
+      console.error('Error rejecting application:', error);
+      alert('Error: ' + error.message);
+    } finally {
+      setSavingBfApp(false);
+    }
+  };
+
+  const handleBfDocUpload = async (e: React.ChangeEvent<HTMLInputElement>, category: 'customer' | 'bank', docType: string, docName: string) => {
+    if (!selectedBfApp || !e.target.files || e.target.files.length === 0) return;
+    
+    const file = e.target.files[0];
+    setUploadingDoc(docType);
+    
+    try {
+      // Upload to storage
+      const fileName = `bank-finance/${selectedBfApp.id}/${docType}-${Date.now()}.${file.name.split('.').pop()}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('documents')
+        .upload(fileName, file, { contentType: file.type });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: urlData } = supabase.storage.from('documents').getPublicUrl(fileName);
+      
+      // Save document record
+      const { error: docError } = await supabase
+        .from('uv_bank_finance_documents')
+        .insert({
+          application_id: selectedBfApp.id,
+          category,
+          document_type: docType,
+          document_name: docName,
+          file_url: urlData.publicUrl,
+          file_name: file.name,
+          file_size: file.size,
+          uploaded_by: user?.id,
+        });
+
+      if (docError) throw docError;
+
+      // Log activity
+      await supabase.from('uv_bank_finance_activity').insert({
+        application_id: selectedBfApp.id,
+        activity_type: 'document_upload',
+        note: `Uploaded: ${docName}`,
+        created_by: user?.id,
+      });
+
+      await loadBfAppDetails(selectedBfApp.id);
+    } catch (error: any) {
+      console.error('Error uploading document:', error);
+      alert('Error uploading: ' + error.message);
+    } finally {
+      setUploadingDoc(null);
+    }
+  };
+
+  const handlePostBfNote = async () => {
+    if (!selectedBfApp || !newBfNote.trim()) return;
+    
+    setPostingNote(true);
+    try {
+      const { error } = await supabase
+        .from('uv_bank_finance_activity')
+        .insert({
+          application_id: selectedBfApp.id,
+          activity_type: 'note',
+          note: newBfNote.trim(),
+          created_by: user?.id,
+        });
+
+      if (error) throw error;
+      
+      setNewBfNote('');
+      await loadBfAppDetails(selectedBfApp.id);
+    } catch (error: any) {
+      console.error('Error posting note:', error);
+      alert('Error: ' + error.message);
+    } finally {
+      setPostingNote(false);
+    }
+  };
+
+  const handleGenerateBankQuotation = async () => {
+    if (!selectedBfApp) return;
+    
+    setGeneratingBankQuotation(true);
+    try {
+      const response = await fetch('/api/generate-bank-quotation', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationId: selectedBfApp.id }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Failed to generate quotation');
+      }
+
+      const result = await response.json();
+      
+      // Update local state
+      setSelectedBfApp(prev => prev ? { 
+        ...prev, 
+        bank_quotation_pdf_url: result.pdfUrl,
+        bank_quotation_number: result.quotationNumber,
+      } : null);
+
+      // Open PDF
+      window.open(result.pdfUrl, '_blank');
+    } catch (error: any) {
+      console.error('Error generating bank quotation:', error);
+      alert('Error: ' + error.message);
+    } finally {
+      setGeneratingBankQuotation(false);
+    }
+  };
+
+  // Load bank finance when tab is selected
+  useEffect(() => {
+    if (isOpen && existingSalesOrder?.id && activeTab === 'bank_finance') {
+      loadBfApplications(existingSalesOrder.id);
+    }
+  }, [isOpen, existingSalesOrder?.id, activeTab]);
+
   // Validation helper
   const getMissingFields = () => {
     const missing: string[] = [];
@@ -2123,7 +2574,7 @@ export default function SalesOrderModal({
         {/* Tabs */}
         <div className="border-b border-white/10">
           <div className="flex">
-            {tabs.map(tab => (
+            {[...baseTabs, ...(formData.paymentMethod === 'bank_finance' ? [bankFinanceTab] : [])].map(tab => (
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key)}
@@ -2448,13 +2899,13 @@ export default function SalesOrderModal({
                     <div className="px-4 py-2.5 bg-white/5 border-b border-white/10 flex items-center justify-between">
                       <h3 className="text-xs font-semibold text-white/80 uppercase tracking-wider">Line Items</h3>
                       {canEdit && (
-                        <button
-                          onClick={addLineItem}
-                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-black bg-gradient-to-r from-gray-200 via-white to-gray-200 hover:from-gray-100 hover:via-gray-50 hover:to-gray-100 rounded-lg transition-all shadow-sm"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          Add Line
-                        </button>
+                      <button
+                        onClick={addLineItem}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-black bg-gradient-to-r from-gray-200 via-white to-gray-200 hover:from-gray-100 hover:via-gray-50 hover:to-gray-100 rounded-lg transition-all shadow-sm"
+                      >
+                        <Plus className="w-3.5 h-3.5" />
+                        Add Line
+                      </button>
                       )}
                     </div>
                     <div className="p-4">
@@ -2463,13 +2914,13 @@ export default function SalesOrderModal({
                           <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
                           <p className="text-sm mb-3">No line items yet</p>
                           {canEdit && (
-                            <button
-                              onClick={addLineItem}
-                              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-gradient-to-r from-gray-200 via-white to-gray-200 hover:from-gray-100 hover:via-gray-50 hover:to-gray-100 rounded-lg transition-all shadow-sm"
-                            >
-                              <Plus className="w-4 h-4" />
-                              Add First Line Item
-                            </button>
+                          <button
+                            onClick={addLineItem}
+                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-gradient-to-r from-gray-200 via-white to-gray-200 hover:from-gray-100 hover:via-gray-50 hover:to-gray-100 rounded-lg transition-all shadow-sm"
+                          >
+                            <Plus className="w-4 h-4" />
+                            Add First Line Item
+                          </button>
                           )}
                         </div>
                       ) : (
@@ -2540,12 +2991,12 @@ export default function SalesOrderModal({
                               </div>
                               <div className="col-span-1 flex justify-end">
                                 {canEdit && (
-                                  <button
-                                    onClick={() => removeLineItem(item.id)}
-                                    className="p-1.5 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
+                                <button
+                                  onClick={() => removeLineItem(item.id)}
+                                  className="p-1.5 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
                                 )}
                               </div>
                             </div>
@@ -2585,7 +3036,7 @@ export default function SalesOrderModal({
                       <input
                         type="text"
                         className={`${inputClass} uppercase`}
-                        value={formData.notes}
+                      value={formData.notes}
                         onChange={(e) => {
                           const upperValue = e.target.value.toUpperCase();
                           if (upperValue.length <= 150) {
@@ -3004,20 +3455,20 @@ export default function SalesOrderModal({
                                     <div className="flex items-center gap-3">
                                       {/* Receipt PDF Actions */}
                                       <div className="flex items-center gap-1">
-                                        <button
-                                          onClick={() => handleViewReceipt(payment)}
-                                          disabled={generatingReceiptId === payment.id}
-                                          className="px-2 py-1 text-[10px] font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors disabled:opacity-50 flex items-center gap-1"
-                                        >
-                                          {generatingReceiptId === payment.id ? (
-                                            <>
-                                              <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
-                                              Loading...
-                                            </>
-                                          ) : (
-                                            'View Receipt'
-                                          )}
-                                        </button>
+                                      <button
+                                        onClick={() => handleViewReceipt(payment)}
+                                        disabled={generatingReceiptId === payment.id}
+                                        className="px-2 py-1 text-[10px] font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors disabled:opacity-50 flex items-center gap-1"
+                                      >
+                                        {generatingReceiptId === payment.id ? (
+                                          <>
+                                            <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
+                                            Loading...
+                                          </>
+                                        ) : (
+                                          'View Receipt'
+                                        )}
+                                      </button>
                                         {/* WhatsApp Button - only enabled if PDF exists */}
                                         <button
                                           onClick={() => handleSendWhatsApp(payment)}
@@ -3456,6 +3907,711 @@ export default function SalesOrderModal({
                   <p className="text-xs text-white/40 text-center">
                     Debit = Amount owed by customer • Credit = Amount paid/adjusted • CR = Credit balance (we owe customer)
                   </p>
+                </div>
+              )}
+
+              {/* ===== BANK FINANCE TAB ===== */}
+              {activeTab === 'bank_finance' && (
+                <div className="space-y-4">
+                  {/* Header */}
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-sm font-semibold text-white/80 uppercase tracking-wider">Bank Finance Applications</h3>
+                    <button
+                      onClick={() => {
+                        setNewBfApp({
+                          bank_name: '',
+                          bank_required_down_pct: 20,
+                          actual_vehicle_price: existingSalesOrder?.total_amount || 0,
+                          actual_customer_down_payment: 0,
+                          bank_quotation_price: 0,
+                          applied_interest_rate: 0,
+                          applied_tenure_months: 48,
+                        });
+                        setShowNewBfAppForm(true);
+                      }}
+                      disabled={!existingSalesOrder}
+                      className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-black bg-white hover:bg-white/90 rounded-lg transition-colors disabled:opacity-50"
+                    >
+                      <Plus className="w-3 h-3" />
+                      New Application
+                    </button>
+                  </div>
+
+                  {/* No Sales Order Warning */}
+                  {!existingSalesOrder && (
+                    <div className="flex items-center justify-center h-48 text-white/40 bg-white/5 rounded-xl border border-white/10">
+                      <div className="text-center">
+                        <AlertCircle className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">Create a Sales Order first to add bank finance applications</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Loading */}
+                  {loadingBankFinance && (
+                    <div className="flex items-center justify-center h-32">
+                      <Loader2 className="w-8 h-8 animate-spin text-white/50" />
+                    </div>
+                  )}
+
+                  {/* New Application Form */}
+                  {showNewBfAppForm && (
+                    <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-sm font-semibold text-white/80">New Bank Finance Application</h4>
+                        <button onClick={() => setShowNewBfAppForm(false)} className="text-white/40 hover:text-white">
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+
+                      {/* Bank Selection */}
+                      <div>
+                        <label className={labelClass}>Bank</label>
+                        <select
+                          className={selectClass}
+                          value={newBfApp.bank_name}
+                          onChange={(e) => setNewBfApp(prev => ({ ...prev, bank_name: e.target.value }))}
+                        >
+                          <option value="">Select Bank</option>
+                          {banksList.map(b => <option key={b.value} value={b.label}>{b.label}</option>)}
+                        </select>
+                      </div>
+
+                      {/* Actual Deal Section */}
+                      <div className="bg-white/5 border border-white/10 rounded-lg p-3 space-y-3">
+                        <p className="text-xs font-medium text-white/60 uppercase">Actual Deal (From Sales Order)</p>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div>
+                            <label className={labelClass}>Vehicle Price (SO)</label>
+                            <input
+                              type="number"
+                              className={inputClass}
+                              value={newBfApp.actual_vehicle_price}
+                              onChange={(e) => {
+                                const price = parseFloat(e.target.value) || 0;
+                                setNewBfApp(prev => ({ ...prev, actual_vehicle_price: price }));
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label className={labelClass}>Customer Down Payment</label>
+                            <input
+                              type="number"
+                              className={inputClass}
+                              value={newBfApp.actual_customer_down_payment}
+                              onChange={(e) => setNewBfApp(prev => ({ ...prev, actual_customer_down_payment: parseFloat(e.target.value) || 0 }))}
+                            />
+                          </div>
+                          <div>
+                            <label className={labelClass}>Amount to Finance</label>
+                            <input
+                              type="text"
+                              className={`${inputClass} bg-white/5`}
+                              value={`AED ${formatCurrency(newBfApp.actual_vehicle_price - newBfApp.actual_customer_down_payment)}`}
+                              readOnly
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Bank Quotation Section */}
+                      <div className="bg-blue-500/5 border border-blue-400/20 rounded-lg p-3 space-y-3">
+                        <p className="text-xs font-medium text-blue-400 uppercase">Bank Quotation (Inflated for Bank)</p>
+                        
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className={labelClass}>Bank Required Down Payment %</label>
+                            <input
+                              type="number"
+                              className={inputClass}
+                              value={newBfApp.bank_required_down_pct}
+                              onChange={(e) => {
+                                const pct = parseFloat(e.target.value) || 0;
+                                const amountToFinance = newBfApp.actual_vehicle_price - newBfApp.actual_customer_down_payment;
+                                const quotationPrice = amountToFinance / (1 - pct / 100);
+                                setNewBfApp(prev => ({ 
+                                  ...prev, 
+                                  bank_required_down_pct: pct,
+                                  bank_quotation_price: Math.round(quotationPrice)
+                                }));
+                              }}
+                            />
+                          </div>
+                          <div>
+                            <label className={labelClass}>Quotation Price (To Bank)</label>
+                            <input
+                              type="number"
+                              className={inputClass}
+                              value={newBfApp.bank_quotation_price}
+                              onChange={(e) => setNewBfApp(prev => ({ ...prev, bank_quotation_price: parseFloat(e.target.value) || 0 }))}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Calculator hint */}
+                        {newBfApp.bank_required_down_pct > 0 && newBfApp.actual_vehicle_price > 0 && (
+                          <div className="bg-white/5 rounded-lg p-2 text-xs text-white/60">
+                            <p>💡 To get AED {formatCurrency(newBfApp.actual_vehicle_price - newBfApp.actual_customer_down_payment)} financed with {newBfApp.bank_required_down_pct}% down:</p>
+                            <p className="font-medium text-white mt-1">
+                              Quotation = {formatCurrency(newBfApp.actual_vehicle_price - newBfApp.actual_customer_down_payment)} ÷ {(100 - newBfApp.bank_required_down_pct) / 100} = AED {formatCurrency(Math.round((newBfApp.actual_vehicle_price - newBfApp.actual_customer_down_payment) / (1 - newBfApp.bank_required_down_pct / 100)))}
+                            </p>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const amountToFinance = newBfApp.actual_vehicle_price - newBfApp.actual_customer_down_payment;
+                                const quotationPrice = amountToFinance / (1 - newBfApp.bank_required_down_pct / 100);
+                                setNewBfApp(prev => ({ ...prev, bank_quotation_price: Math.round(quotationPrice) }));
+                              }}
+                              className="mt-2 px-2 py-1 text-xs font-medium text-blue-400 bg-blue-400/10 hover:bg-blue-400/20 rounded transition-colors"
+                            >
+                              Use Calculated Amount
+                            </button>
+                          </div>
+                        )}
+
+                        {/* Validation */}
+                        {newBfApp.bank_quotation_price > 0 && (
+                          <div className={`p-2 rounded-lg text-xs ${
+                            newBfApp.bank_quotation_price * (1 - newBfApp.bank_required_down_pct / 100) >= (newBfApp.actual_vehicle_price - newBfApp.actual_customer_down_payment)
+                              ? 'bg-green-500/10 text-green-400 border border-green-400/20'
+                              : 'bg-red-500/10 text-red-400 border border-red-400/20'
+                          }`}>
+                            {newBfApp.bank_quotation_price * (1 - newBfApp.bank_required_down_pct / 100) >= (newBfApp.actual_vehicle_price - newBfApp.actual_customer_down_payment)
+                              ? `✅ Bank will finance AED ${formatCurrency(newBfApp.bank_quotation_price * (1 - newBfApp.bank_required_down_pct / 100))} - covers required amount`
+                              : `⚠️ Bank will finance AED ${formatCurrency(newBfApp.bank_quotation_price * (1 - newBfApp.bank_required_down_pct / 100))} - shortfall of AED ${formatCurrency((newBfApp.actual_vehicle_price - newBfApp.actual_customer_down_payment) - (newBfApp.bank_quotation_price * (1 - newBfApp.bank_required_down_pct / 100)))}`
+                            }
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Finance Terms */}
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <label className={labelClass}>Interest Rate %</label>
+                          <input
+                            type="number"
+                            step="0.01"
+                            className={inputClass}
+                            value={newBfApp.applied_interest_rate}
+                            onChange={(e) => setNewBfApp(prev => ({ ...prev, applied_interest_rate: parseFloat(e.target.value) || 0 }))}
+                          />
+                        </div>
+                        <div>
+                          <label className={labelClass}>Tenure (Months)</label>
+                          <input
+                            type="number"
+                            className={inputClass}
+                            value={newBfApp.applied_tenure_months}
+                            onChange={(e) => setNewBfApp(prev => ({ ...prev, applied_tenure_months: parseInt(e.target.value) || 0 }))}
+                          />
+                        </div>
+                        <div>
+                          <label className={labelClass}>Est. Monthly EMI</label>
+                          <input
+                            type="text"
+                            className={`${inputClass} bg-white/5`}
+                            value={newBfApp.applied_tenure_months > 0 && newBfApp.bank_quotation_price > 0 
+                              ? `AED ${formatCurrency(Math.round((newBfApp.bank_quotation_price * (1 - newBfApp.bank_required_down_pct / 100)) / newBfApp.applied_tenure_months))}`
+                              : '-'
+                            }
+                            readOnly
+                          />
+                        </div>
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex justify-end gap-2 pt-2 border-t border-white/10">
+                        <button
+                          onClick={() => setShowNewBfAppForm(false)}
+                          className="px-4 py-2 text-xs font-medium text-white/60 hover:text-white transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          onClick={handleCreateBfApplication}
+                          disabled={savingBfApp || !newBfApp.bank_name || newBfApp.bank_quotation_price <= 0}
+                          className="flex items-center gap-2 px-4 py-2 text-xs font-medium text-black bg-white hover:bg-white/90 rounded-lg transition-colors disabled:opacity-50"
+                        >
+                          {savingBfApp ? <Loader2 className="w-3 h-3 animate-spin" /> : <Plus className="w-3 h-3" />}
+                          Create Application
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Applications List */}
+                  {!loadingBankFinance && existingSalesOrder && bfApplications.length === 0 && !showNewBfAppForm && (
+                    <div className="flex items-center justify-center h-48 text-white/40 bg-white/5 rounded-xl border border-white/10">
+                      <div className="text-center">
+                        <Building2 className="w-10 h-10 mx-auto mb-2 opacity-50" />
+                        <p className="text-sm">No bank finance applications yet</p>
+                        <p className="text-xs text-white/30 mt-1">Click "New Application" to start</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Application Cards */}
+                  {bfApplications.length > 0 && !selectedBfApp && (
+                    <div className="space-y-3">
+                      {bfApplications.map(app => {
+                        const statusInfo = bfStatusLabels[app.status] || { label: app.status, color: 'text-white/50', icon: null };
+                        return (
+                          <div
+                            key={app.id}
+                            onClick={() => {
+                              setSelectedBfApp(app);
+                              loadBfAppDetails(app.id);
+                            }}
+                            className="bg-white/5 border border-white/10 rounded-xl p-4 hover:bg-white/10 cursor-pointer transition-colors"
+                          >
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <div className="flex items-center gap-2 mb-1">
+                                  <span className="text-sm font-semibold text-white">#{app.application_number} {app.bank_name}</span>
+                                  <span className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-medium ${statusInfo.color} bg-white/5`}>
+                                    {statusInfo.icon}
+                                    {statusInfo.label}
+                                  </span>
+                                </div>
+                                <p className="text-xs text-white/50">
+                                  AED {formatCurrency(app.bank_finance_amount || 0)} • {app.applied_tenure_months} months • {app.applied_interest_rate || 0}%
+                                </p>
+                                {app.status === 'rejected' && app.rejection_reason && (
+                                  <p className="text-xs text-red-400 mt-1">Rejected: {app.rejection_reason}</p>
+                                )}
+                                {app.status === 'approved' && app.bank_reference && (
+                                  <p className="text-xs text-green-400 mt-1">Ref: {app.bank_reference}</p>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                <p className="text-[10px] text-white/40">
+                                  {new Date(app.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}
+                                </p>
+                                {app.decision_at && (
+                                  <p className="text-[10px] text-white/30">
+                                    {Math.ceil((new Date(app.decision_at).getTime() - new Date(app.created_at).getTime()) / (1000 * 60 * 60 * 24))} days
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Selected Application Detail View */}
+                  {selectedBfApp && (
+                    <div className="space-y-4">
+                      {/* Back button */}
+                      <button
+                        onClick={() => setSelectedBfApp(null)}
+                        className="flex items-center gap-1 text-xs text-white/50 hover:text-white transition-colors"
+                      >
+                        ← Back to Applications
+                      </button>
+
+                      {/* Application Header */}
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h4 className="text-lg font-semibold text-white">#{selectedBfApp.application_number} {selectedBfApp.bank_name}</h4>
+                          <p className="text-xs text-white/50">Created {new Date(selectedBfApp.created_at).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+                        </div>
+                        <span className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium ${bfStatusLabels[selectedBfApp.status]?.color || 'text-white/50'} bg-white/5 border border-white/10`}>
+                          {bfStatusLabels[selectedBfApp.status]?.icon}
+                          {bfStatusLabels[selectedBfApp.status]?.label || selectedBfApp.status}
+                        </span>
+                      </div>
+
+                      {/* Status Progress Bar */}
+                      <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+                        <div className="flex items-center justify-between relative">
+                          {/* Line */}
+                          <div className="absolute top-4 left-0 right-0 h-0.5 bg-white/10" />
+                          
+                          {['documents_pending', 'documents_complete', 'accounts_review', 'submitted_to_bank', 'approved'].map((status, idx) => {
+                            const statusList = ['documents_pending', 'documents_complete', 'accounts_review', 'submitted_to_bank', 'approved', 'rejected'];
+                            const currentIdx = statusList.indexOf(selectedBfApp.status);
+                            const isRejected = selectedBfApp.status === 'rejected';
+                            const isActive = status === selectedBfApp.status;
+                            const isCompleted = !isRejected && currentIdx > idx;
+                            const statusInfo = bfStatusLabels[status];
+                            
+                            return (
+                              <div key={status} className="flex flex-col items-center z-10">
+                                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                                  isActive ? 'bg-white/20 ring-2 ring-white/40' :
+                                  isCompleted ? 'bg-green-500/20' :
+                                  'bg-white/5'
+                                }`}>
+                                  {isCompleted ? (
+                                    <CheckCircle2 className="w-4 h-4 text-green-400" />
+                                  ) : (
+                                    <span className={isActive ? statusInfo.color : 'text-white/30'}>{statusInfo.icon}</span>
+                                  )}
+                                </div>
+                                <p className={`text-[9px] mt-1 ${isActive ? 'text-white' : 'text-white/40'}`}>
+                                  {statusInfo.label.split(' ')[0]}
+                                </p>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+
+                      {/* Finance Details - Approved Terms (if approved) */}
+                      {selectedBfApp.status === 'approved' && (
+                        <div className="bg-green-500/5 border border-green-400/20 rounded-xl p-4 space-y-3">
+                          <div className="flex items-center gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-green-400" />
+                            <p className="text-sm font-semibold text-green-400">Approved Finance Terms</p>
+                          </div>
+                          <div className="grid grid-cols-4 gap-4 text-center">
+                            <div>
+                              <p className="text-xs text-white/50">Approved Amount</p>
+                              <p className="text-sm font-bold text-white">AED {formatCurrency(selectedBfApp.approved_amount || 0)}</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-white/50">Interest Rate</p>
+                              <p className="text-sm font-bold text-white">{selectedBfApp.approved_interest_rate || 0}%</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-white/50">Tenure</p>
+                              <p className="text-sm font-bold text-white">{selectedBfApp.approved_tenure_months} months</p>
+                            </div>
+                            <div>
+                              <p className="text-xs text-white/50">Monthly EMI</p>
+                              <p className="text-sm font-bold text-white">AED {formatCurrency(selectedBfApp.approved_emi || 0)}</p>
+                            </div>
+                          </div>
+                          {selectedBfApp.bank_reference && (
+                            <p className="text-xs text-center text-white/50">Bank Reference: <span className="text-green-400 font-mono">{selectedBfApp.bank_reference}</span></p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Bank Quotation */}
+                      <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-semibold text-white/80 uppercase">Bank Quotation</p>
+                          {selectedBfApp.bank_quotation_pdf_url ? (
+                            <button
+                              onClick={() => window.open(selectedBfApp.bank_quotation_pdf_url, '_blank')}
+                              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-green-400 bg-green-400/10 hover:bg-green-400/20 rounded transition-colors"
+                            >
+                              <Download className="w-3 h-3" />
+                              Download PDF
+                            </button>
+                          ) : (
+                            <button
+                              onClick={handleGenerateBankQuotation}
+                              disabled={generatingBankQuotation}
+                              className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-white/70 bg-white/10 hover:bg-white/20 rounded transition-colors"
+                            >
+                              {generatingBankQuotation ? <Loader2 className="w-3 h-3 animate-spin" /> : <FileText className="w-3 h-3" />}
+                              Generate Quotation
+                            </button>
+                          )}
+                        </div>
+                        <div className="grid grid-cols-3 gap-4 text-sm">
+                          <div>
+                            <p className="text-xs text-white/50">Quotation Price</p>
+                            <p className="font-medium text-white">AED {formatCurrency(selectedBfApp.bank_quotation_price || 0)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-white/50">Bank Down Payment ({selectedBfApp.bank_required_down_pct}%)</p>
+                            <p className="font-medium text-white">AED {formatCurrency(selectedBfApp.bank_shown_down_payment || 0)}</p>
+                          </div>
+                          <div>
+                            <p className="text-xs text-white/50">Bank Will Finance</p>
+                            <p className="font-medium text-blue-400">AED {formatCurrency(selectedBfApp.bank_finance_amount || 0)}</p>
+                          </div>
+                        </div>
+                        <div className="text-xs text-white/40 pt-2 border-t border-white/10">
+                          Actual vehicle price: AED {formatCurrency(selectedBfApp.actual_vehicle_price || 0)} • Customer down: AED {formatCurrency(selectedBfApp.actual_customer_down_payment || 0)} • Needed: AED {formatCurrency(selectedBfApp.amount_to_finance || 0)}
+                        </div>
+                      </div>
+
+                      {/* Documents Section */}
+                      <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
+                        <p className="text-xs font-semibold text-white/80 uppercase">Customer Documents</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {customerDocTypes.map(docType => {
+                            const doc = bfDocuments.find(d => d.document_type === docType.value && d.category === 'customer');
+                            return (
+                              <div key={docType.value} className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
+                                <span className="text-xs text-white/70">{docType.label}</span>
+                                <div className="flex items-center gap-1">
+                                  {doc ? (
+                                    <>
+                                      <CheckCircle2 className="w-3 h-3 text-green-400" />
+                                      <button
+                                        onClick={() => window.open(doc.file_url, '_blank')}
+                                        className="text-xs text-blue-400 hover:underline"
+                                      >
+                                        View
+                                      </button>
+                                    </>
+                                  ) : (
+                                    <label className="flex items-center gap-1 text-xs text-white/40 hover:text-white cursor-pointer">
+                                      <Upload className="w-3 h-3" />
+                                      Upload
+                                      <input
+                                        type="file"
+                                        className="hidden"
+                                        accept=".pdf,.jpg,.jpeg,.png"
+                                        onChange={(e) => handleBfDocUpload(e, 'customer', docType.value, docType.label)}
+                                      />
+                                    </label>
+                                  )}
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+
+                        {/* Bank Documents (show after approval) */}
+                        {(selectedBfApp.status === 'approved' || selectedBfApp.status === 'submitted_to_bank') && (
+                          <>
+                            <p className="text-xs font-semibold text-white/80 uppercase pt-3 border-t border-white/10">Bank Documents</p>
+                            <div className="grid grid-cols-2 gap-2">
+                              {bankDocTypes.map(docType => {
+                                const doc = bfDocuments.find(d => d.document_type === docType.value && d.category === 'bank');
+                                return (
+                                  <div key={docType.value} className="flex items-center justify-between p-2 bg-white/5 rounded-lg">
+                                    <span className="text-xs text-white/70">{docType.label}</span>
+                                    <div className="flex items-center gap-1">
+                                      {doc ? (
+                                        <>
+                                          <CheckCircle2 className="w-3 h-3 text-green-400" />
+                                          <button
+                                            onClick={() => window.open(doc.file_url, '_blank')}
+                                            className="text-xs text-blue-400 hover:underline"
+                                          >
+                                            View
+                                          </button>
+                                        </>
+                                      ) : (
+                                        <label className="flex items-center gap-1 text-xs text-white/40 hover:text-white cursor-pointer">
+                                          <Upload className="w-3 h-3" />
+                                          Upload
+                                          <input
+                                            type="file"
+                                            className="hidden"
+                                            accept=".pdf,.jpg,.jpeg,.png"
+                                            onChange={(e) => handleBfDocUpload(e, 'bank', docType.value, docType.label)}
+                                          />
+                                        </label>
+                                      )}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+                      </div>
+
+                      {/* Activity Log */}
+                      <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3">
+                        <p className="text-xs font-semibold text-white/80 uppercase">Activity Log</p>
+                        
+                        {/* Add Note */}
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            className={inputClass}
+                            placeholder="Add a note..."
+                            value={newBfNote}
+                            onChange={(e) => setNewBfNote(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handlePostBfNote()}
+                          />
+                          <button
+                            onClick={handlePostBfNote}
+                            disabled={postingNote || !newBfNote.trim()}
+                            className="px-3 py-2 text-xs font-medium text-white bg-white/10 hover:bg-white/20 rounded-lg transition-colors disabled:opacity-50"
+                          >
+                            {postingNote ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Post'}
+                          </button>
+                        </div>
+
+                        {/* Activity List */}
+                        <div className="max-h-48 overflow-y-auto space-y-2">
+                          {bfActivity.length === 0 ? (
+                            <p className="text-xs text-white/30 text-center py-4">No activity yet</p>
+                          ) : (
+                            bfActivity.map(act => (
+                              <div key={act.id} className="flex gap-2 p-2 bg-white/5 rounded-lg">
+                                <div className="flex-shrink-0 w-6 h-6 rounded-full bg-white/10 flex items-center justify-center">
+                                  {act.activity_type === 'status_change' ? <ArrowRightLeft className="w-3 h-3 text-blue-400" /> :
+                                   act.activity_type === 'document_upload' ? <Upload className="w-3 h-3 text-green-400" /> :
+                                   <MessageSquare className="w-3 h-3 text-white/50" />}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-xs text-white">
+                                    {act.activity_type === 'status_change' 
+                                      ? `Status changed: ${bfStatusLabels[act.old_status || '']?.label || act.old_status} → ${bfStatusLabels[act.new_status || '']?.label || act.new_status}`
+                                      : act.note}
+                                  </p>
+                                  <p className="text-[10px] text-white/40 mt-0.5">
+                                    {new Date(act.created_at).toLocaleString('en-GB', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                  </p>
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex flex-wrap gap-2 pt-2 border-t border-white/10">
+                        {selectedBfApp.status === 'documents_pending' && (
+                          <button
+                            onClick={() => handleBfStatusChange('documents_complete')}
+                            className="flex items-center gap-1 px-3 py-2 text-xs font-medium text-white bg-blue-500/20 hover:bg-blue-500/30 border border-blue-400/30 rounded-lg transition-colors"
+                          >
+                            <CheckCircle2 className="w-3 h-3" />
+                            Mark Documents Complete
+                          </button>
+                        )}
+                        {selectedBfApp.status === 'documents_complete' && (
+                          <button
+                            onClick={() => handleBfStatusChange('accounts_review')}
+                            className="flex items-center gap-1 px-3 py-2 text-xs font-medium text-white bg-purple-500/20 hover:bg-purple-500/30 border border-purple-400/30 rounded-lg transition-colors"
+                          >
+                            <ArrowRightLeft className="w-3 h-3" />
+                            Hand Over to Accounts
+                          </button>
+                        )}
+                        {selectedBfApp.status === 'accounts_review' && (
+                          <button
+                            onClick={() => handleBfStatusChange('submitted_to_bank')}
+                            className="flex items-center gap-1 px-3 py-2 text-xs font-medium text-white bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-400/30 rounded-lg transition-colors"
+                          >
+                            <Building2 className="w-3 h-3" />
+                            Submit to Bank
+                          </button>
+                        )}
+                        {selectedBfApp.status === 'submitted_to_bank' && (
+                          <>
+                            <button
+                              onClick={() => setShowApprovalModal(true)}
+                              className="flex items-center gap-1 px-3 py-2 text-xs font-medium text-black bg-green-400 hover:bg-green-300 rounded-lg transition-colors"
+                            >
+                              <CheckCircle2 className="w-3 h-3" />
+                              Mark Approved
+                            </button>
+                            <button
+                              onClick={() => setShowRejectionModal(true)}
+                              className="flex items-center gap-1 px-3 py-2 text-xs font-medium text-red-400 bg-red-400/20 hover:bg-red-400/30 border border-red-400/30 rounded-lg transition-colors"
+                            >
+                              <XCircle className="w-3 h-3" />
+                              Mark Rejected
+                            </button>
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Approval Modal */}
+                  {showApprovalModal && selectedBfApp && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80">
+                      <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 w-full max-w-lg space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-lg font-semibold text-white">✅ Mark as Approved</h4>
+                          <button onClick={() => setShowApprovalModal(false)} className="text-white/40 hover:text-white">
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+                        
+                        <div className="space-y-3">
+                          <div>
+                            <label className={labelClass}>Bank Reference Number *</label>
+                            <input type="text" className={inputClass} value={approvalForm.bank_reference} onChange={(e) => setApprovalForm(prev => ({ ...prev, bank_reference: e.target.value }))} />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className={labelClass}>Approved Finance Amount *</label>
+                              <input type="number" className={inputClass} value={approvalForm.approved_amount} onChange={(e) => setApprovalForm(prev => ({ ...prev, approved_amount: parseFloat(e.target.value) || 0 }))} />
+                            </div>
+                            <div>
+                              <label className={labelClass}>Down Payment</label>
+                              <input type="number" className={inputClass} value={approvalForm.approved_down_payment} onChange={(e) => setApprovalForm(prev => ({ ...prev, approved_down_payment: parseFloat(e.target.value) || 0 }))} />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className={labelClass}>Interest Rate % *</label>
+                              <input type="number" step="0.01" className={inputClass} value={approvalForm.approved_interest_rate} onChange={(e) => setApprovalForm(prev => ({ ...prev, approved_interest_rate: parseFloat(e.target.value) || 0 }))} />
+                            </div>
+                            <div>
+                              <label className={labelClass}>Tenure (Months) *</label>
+                              <input type="number" className={inputClass} value={approvalForm.approved_tenure_months} onChange={(e) => setApprovalForm(prev => ({ ...prev, approved_tenure_months: parseInt(e.target.value) || 0 }))} />
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className={labelClass}>Monthly EMI</label>
+                              <input type="number" className={inputClass} value={approvalForm.approved_emi} onChange={(e) => setApprovalForm(prev => ({ ...prev, approved_emi: parseFloat(e.target.value) || 0 }))} />
+                            </div>
+                            <div>
+                              <label className={labelClass}>First EMI Date</label>
+                              <input type="date" className={inputClass} value={approvalForm.first_emi_date} onChange={(e) => setApprovalForm(prev => ({ ...prev, first_emi_date: e.target.value }))} />
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-2">
+                          <button onClick={() => setShowApprovalModal(false)} className="px-4 py-2 text-sm text-white/60 hover:text-white">Cancel</button>
+                          <button
+                            onClick={handleBfApproval}
+                            disabled={savingBfApp || !approvalForm.bank_reference || approvalForm.approved_amount <= 0}
+                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-green-400 hover:bg-green-300 rounded-lg disabled:opacity-50"
+                          >
+                            {savingBfApp ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+                            Confirm Approval
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Rejection Modal */}
+                  {showRejectionModal && selectedBfApp && (
+                    <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80">
+                      <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 w-full max-w-md space-y-4">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-lg font-semibold text-white">❌ Mark as Rejected</h4>
+                          <button onClick={() => setShowRejectionModal(false)} className="text-white/40 hover:text-white">
+                            <X className="w-5 h-5" />
+                          </button>
+                        </div>
+                        
+                        <div>
+                          <label className={labelClass}>Rejection Reason *</label>
+                          <textarea
+                            className={`${inputClass} min-h-[100px]`}
+                            placeholder="e.g., Insufficient income, credit score too low..."
+                            value={rejectionReason}
+                            onChange={(e) => setRejectionReason(e.target.value)}
+                          />
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-2">
+                          <button onClick={() => setShowRejectionModal(false)} className="px-4 py-2 text-sm text-white/60 hover:text-white">Cancel</button>
+                          <button
+                            onClick={handleBfRejection}
+                            disabled={savingBfApp || !rejectionReason.trim()}
+                            className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-white bg-red-500 hover:bg-red-400 rounded-lg disabled:opacity-50"
+                          >
+                            {savingBfApp ? <Loader2 className="w-4 h-4 animate-spin" /> : <XCircle className="w-4 h-4" />}
+                            Confirm Rejection
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </>

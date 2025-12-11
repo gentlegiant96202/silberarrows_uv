@@ -1917,11 +1917,16 @@ export default function SalesOrderModal({
   };
 
   // Parse warranty string from inventory
+  // Parse warranty string from inventory - only match DEALER or MANUFACTURER warranty, not SilberArrows
   const parseWarrantyString = (warrantyStr: string | null | undefined) => {
     if (!warrantyStr) return { hasWarranty: false, expiry: '', km: 0 };
     
     const lowerStr = warrantyStr.toLowerCase();
-    if (!lowerStr.includes('warranty') && !lowerStr.includes('dealer') && !lowerStr.includes('manufacturer')) {
+    // Only mark as having manufacturer warranty if it's explicitly "dealer" or "manufacturer" warranty
+    // SilberArrows extended warranty should NOT trigger this checkbox
+    const isManufacturerOrDealer = lowerStr.includes('dealer') || lowerStr.includes('manufacturer');
+    
+    if (!isManufacturerOrDealer) {
       return { hasWarranty: false, expiry: '', km: 0 };
     }
     
@@ -1936,12 +1941,16 @@ export default function SalesOrderModal({
     };
   };
 
-  // Parse service string from inventory
+  // Parse service string from inventory - only match DEALER or MANUFACTURER service, not SilberArrows
   const parseServiceString = (serviceStr: string | null | undefined) => {
     if (!serviceStr) return { hasService: false, expiry: '', km: 0 };
     
     const lowerStr = serviceStr.toLowerCase();
-    if (!lowerStr.includes('service')) {
+    // Only mark as having manufacturer service if it's explicitly "dealer" or "manufacturer" service
+    // SilberArrows ServiceCare should NOT trigger this checkbox
+    const isManufacturerOrDealer = lowerStr.includes('dealer') || lowerStr.includes('manufacturer');
+    
+    if (!isManufacturerOrDealer) {
       return { hasService: false, expiry: '', km: 0 };
     }
     

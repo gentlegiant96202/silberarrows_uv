@@ -110,6 +110,7 @@ interface Invoice {
   status: 'pending' | 'partial' | 'paid' | 'reversed';
   subtotal: number;
   total_amount: number;
+  debit_note_total: number;
   credit_note_total: number;
   paid_amount: number;
   balance_due: number;
@@ -181,7 +182,7 @@ interface PaymentAllocation {
 interface Adjustment {
   id: string;
   adjustment_number: string;
-  adjustment_type: 'credit_note' | 'refund';
+  adjustment_type: 'credit_note' | 'debit_note' | 'refund';
   lead_id: string;
   invoice_id?: string;
   amount: number;
@@ -461,21 +462,24 @@ export default function SalesOrderModal({
   // Adjustments state
   const [adjustments, setAdjustments] = useState<Adjustment[]>([]);
   const [showCreditNoteForm, setShowCreditNoteForm] = useState<string | null>(null); // invoice_id
+  const [showDebitNoteForm, setShowDebitNoteForm] = useState<string | null>(null); // invoice_id
   const [showRefundForm, setShowRefundForm] = useState(false);
   const [savingAdjustment, setSavingAdjustment] = useState(false);
   
   // PDF generation state for transactions
   const [generatingReceiptId, setGeneratingReceiptId] = useState<string | null>(null);
   const [generatingCreditNoteId, setGeneratingCreditNoteId] = useState<string | null>(null);
+  const [generatingDebitNoteId, setGeneratingDebitNoteId] = useState<string | null>(null);
   const [generatingRefundId, setGeneratingRefundId] = useState<string | null>(null);
   
   // WhatsApp sending state
   const [sendingWhatsAppId, setSendingWhatsAppId] = useState<string | null>(null);
 
   // Collapsible sections state
-  const [expandedSections, setExpandedSections] = useState<{ payments: boolean; credits: boolean; refunds: boolean }>({
+  const [expandedSections, setExpandedSections] = useState<{ payments: boolean; credits: boolean; debits: boolean; refunds: boolean }>({
     payments: true,
     credits: false,
+    debits: false,
     refunds: false
   });
   const toggleSection = (section: 'payments' | 'credits' | 'refunds') => {
@@ -485,6 +489,7 @@ export default function SalesOrderModal({
   // Expanded invoice state
   const [expandedInvoiceId, setExpandedInvoiceId] = useState<string | null>(null);
   const [newCreditNote, setNewCreditNote] = useState({ amount: 0, reason: '' });
+  const [newDebitNote, setNewDebitNote] = useState({ amount: 0, reason: '' });
   const [newRefund, setNewRefund] = useState({ amount: 0, reason: '', method: 'bank_transfer', reference: '', paymentId: '' });
   
   // SOA state
@@ -1550,6 +1555,7 @@ export default function SalesOrderModal({
       if (!balanceError && balanceResult && balanceResult.length > 0) {
         setSoaBalance({
           total_invoiced: parseFloat(balanceResult[0].total_invoiced) || 0,
+          total_debit_notes: parseFloat(balanceResult[0].total_debit_notes) || 0,
           total_paid: parseFloat(balanceResult[0].total_paid) || 0,
           total_credit_notes: parseFloat(balanceResult[0].total_credit_notes) || 0,
           total_refunds: parseFloat(balanceResult[0].total_refunds) || 0,
@@ -1647,6 +1653,61 @@ export default function SalesOrderModal({
     } catch (error: any) {
       console.error('Error creating credit note:', error);
       alert('Error creating credit note: ' + error.message);
+    } finally {
+      setSavingAdjustment(false);
+    }
+  };
+
+  // Add debit note to invoice (increases what customer owes)
+  const handleAddDebitNote = async (invoiceId: string) => {
+    if (newDebitNote.amount <= 0) {
+      alert('Please enter a valid amount');
+      return;
+    }
+    if (!newDebitNote.reason.trim()) {
+      alert('Please enter a reason');
+      return;
+    }
+    
+    // Validate invoice exists
+    const targetInvoice = invoices.find(inv => inv.id === invoiceId);
+    if (!targetInvoice) {
+      alert('Invoice not found');
+      return;
+    }
+    
+    setSavingAdjustment(true);
+    try {
+      const { data, error } = await supabase
+        .from('uv_adjustments')
+        .insert({
+          adjustment_type: 'debit_note',
+          lead_id: lead.id,
+          invoice_id: invoiceId,
+          amount: newDebitNote.amount,
+          reason: newDebitNote.reason,
+          created_by: user?.id,
+        })
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      // Reset form
+      setNewDebitNote({ amount: 0, reason: '' });
+      setShowDebitNoteForm(null);
+      
+      // Reload data and SOA balance
+      await loadAdjustments();
+      await loadSoaBalance();
+      if (existingSalesOrder) {
+        await loadInvoices(existingSalesOrder.id);
+      }
+      
+      alert(`Debit Note ${data.adjustment_number} created successfully!`);
+    } catch (error: any) {
+      console.error('Error creating debit note:', error);
+      alert('Error creating debit note: ' + error.message);
     } finally {
       setSavingAdjustment(false);
     }
@@ -1875,6 +1936,44 @@ export default function SalesOrderModal({
       alert('Error: ' + error.message);
     } finally {
       setGeneratingCreditNoteId(null);
+    }
+  };
+
+  // View Debit Note - generates if needed, then opens and downloads
+  const handleViewDebitNote = async (adjustment: Adjustment) => {
+    setGeneratingDebitNoteId(adjustment.id);
+    try {
+      let pdfUrl = adjustment.pdf_url;
+      
+      // Generate if not exists
+      if (!pdfUrl) {
+        const response = await fetch('/api/generate-debit-note', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ adjustmentId: adjustment.id })
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.error || 'Failed to generate debit note');
+        }
+
+        const result = await response.json();
+        pdfUrl = result.pdfUrl;
+        
+        // Reload adjustments to update state
+        loadAdjustments();
+      }
+      
+      // Open and download
+      if (pdfUrl) {
+        await openAndDownloadPdf(pdfUrl, `${adjustment.adjustment_number}.pdf`);
+      }
+    } catch (error: any) {
+      console.error('Error viewing debit note:', error);
+      alert('Error: ' + error.message);
+    } finally {
+      setGeneratingDebitNoteId(null);
     }
   };
 
@@ -3215,8 +3314,8 @@ export default function SalesOrderModal({
                     <div className="space-y-2">
                       {invoices.map((invoice) => {
                         const isExpanded = expandedInvoiceId === invoice.id;
-                        // Check if fully paid - account for credits reducing the balance
-                        const effectiveBalance = (invoice.total_amount || 0) - (invoice.credit_note_total || 0) - (invoice.paid_amount || 0);
+                        // Check if fully paid - account for debit notes increasing and credits reducing the balance
+                        const effectiveBalance = (invoice.total_amount || 0) + (invoice.debit_note_total || 0) - (invoice.credit_note_total || 0) - (invoice.paid_amount || 0);
                         const isPaid = invoice.status === 'paid' || effectiveBalance <= 0;
                         const isReversed = invoice.status === 'reversed';
                         
@@ -3268,6 +3367,12 @@ export default function SalesOrderModal({
                                     <span className="text-white/40">Total</span>
                                     <span className="text-white">{formatCurrency(invoice.total_amount)}</span>
                                   </div>
+                                  {(invoice.debit_note_total || 0) > 0 && (
+                                    <div className="flex justify-between">
+                                      <span className="text-white/40">Debit Notes</span>
+                                      <span className="text-red-400">+{formatCurrency(invoice.debit_note_total || 0)}</span>
+                                    </div>
+                                  )}
                                   {(invoice.credit_note_total || 0) > 0 && (
                                     <div className="flex justify-between">
                                       <span className="text-white/40">Credits</span>
@@ -3741,6 +3846,94 @@ export default function SalesOrderModal({
                         )}
                       </div>
 
+                      {/* DEBIT NOTES SECTION */}
+                      <div className="border border-white/15 rounded-lg overflow-hidden bg-white/5">
+                        <button
+                          onClick={() => toggleSection('debits')}
+                          className="w-full flex items-center justify-between px-4 py-3 bg-white/10 hover:bg-white/15 transition-colors"
+                        >
+                          <div className="flex items-center gap-3">
+                            <ChevronDown className={`w-4 h-4 text-white/40 transition-transform ${expandedSections.debits ? '' : '-rotate-90'}`} />
+                            <span className="text-sm font-medium text-white/80">Debit Notes</span>
+                            <span className="text-xs text-white/40">({adjustments.filter(a => a.adjustment_type === 'debit_note').length})</span>
+                          </div>
+                          <span className="text-sm font-semibold text-red-400">+{formatCurrency(adjustments.filter(a => a.adjustment_type === 'debit_note').reduce((sum, a) => sum + a.amount, 0))}</span>
+                        </button>
+                        
+                        {expandedSections.debits && (
+                          <div className="p-3 space-y-2 border-t border-white/10">
+                            {/* Add Debit Note Button - Requires canCreate */}
+                            {!showDebitNoteForm && canCreate && (
+                              <button
+                                onClick={() => setShowDebitNoteForm(invoices.find(i => i.status !== 'reversed')?.id || 'select')}
+                                disabled={!invoices.some(i => i.status !== 'reversed')}
+                                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-white/50 hover:text-white/70 border border-dashed border-white/10 hover:border-white/20 rounded-lg transition-all disabled:opacity-30"
+                              >
+                                <Plus className="w-3 h-3" />
+                                Add Debit Note
+                              </button>
+                            )}
+
+                            {/* Add Debit Note Form */}
+                            {showDebitNoteForm && (
+                              <div className="bg-black/20 border border-white/10 rounded-lg p-3 space-y-3">
+                                <div className="grid grid-cols-3 gap-3">
+                                  <Field label="Invoice">
+                                    <select value={typeof showDebitNoteForm === 'string' && showDebitNoteForm !== 'select' ? showDebitNoteForm : ''} onChange={(e) => setShowDebitNoteForm(e.target.value || 'select')} className={selectClass}>
+                                      <option value="">Select</option>
+                                      {invoices.filter(inv => inv.status !== 'reversed').map(inv => <option key={inv.id} value={inv.id}>{inv.invoice_number}</option>)}
+                                    </select>
+                                  </Field>
+                                  <Field label="Amount">
+                                    <input type="number" placeholder="0.00" value={newDebitNote.amount || ''} onChange={(e) => setNewDebitNote(prev => ({ ...prev, amount: parseFloat(e.target.value) || 0 }))} className={inputClass} />
+                                  </Field>
+                                  <Field label="Reason">
+                                    <input type="text" placeholder="Reason" value={newDebitNote.reason} onChange={(e) => setNewDebitNote(prev => ({ ...prev, reason: e.target.value }))} className={inputClass} />
+                                  </Field>
+                                </div>
+                                <div className="flex justify-end gap-2">
+                                  <button onClick={() => setShowDebitNoteForm(null)} className="px-3 py-1.5 text-xs text-white/50 hover:text-white">Cancel</button>
+                                  <button onClick={() => { const invoiceId = typeof showDebitNoteForm === 'string' && showDebitNoteForm !== 'select' ? showDebitNoteForm : null; if (invoiceId) handleAddDebitNote(invoiceId); }} disabled={savingAdjustment || !showDebitNoteForm || showDebitNoteForm === 'select' || newDebitNote.amount <= 0} className="px-3 py-1.5 text-xs font-medium text-black bg-white rounded-lg disabled:opacity-50">
+                                    {savingAdjustment ? 'Saving...' : 'Save'}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Debit Notes List */}
+                            {adjustments.filter(a => a.adjustment_type === 'debit_note').map(dn => {
+                              const linkedInvoice = invoices.find(inv => inv.id === dn.invoice_id);
+                              return (
+                                <div key={dn.id} className="flex items-center justify-between bg-black/20 rounded-lg p-3">
+                                  <div>
+                                    <p className="text-sm font-medium text-white/80">{dn.adjustment_number}</p>
+                                    <p className="text-xs text-white/40">{linkedInvoice ? `→ ${linkedInvoice.invoice_number}` : ''} • {dn.reason}</p>
+                                  </div>
+                                  <div className="flex items-center gap-3">
+                                    {/* Debit Note PDF Actions */}
+                                    <button
+                                      onClick={() => handleViewDebitNote(dn)}
+                                      disabled={generatingDebitNoteId === dn.id}
+                                      className="px-2 py-1 text-[10px] font-medium text-white/60 hover:text-white bg-white/5 hover:bg-white/10 rounded transition-colors disabled:opacity-50 flex items-center gap-1"
+                                    >
+                                      {generatingDebitNoteId === dn.id ? (
+                                        <>
+                                          <div className="w-3 h-3 border border-white/30 border-t-white rounded-full animate-spin" />
+                                          Loading...
+                                        </>
+                                      ) : (
+                                        'View'
+                                      )}
+                                    </button>
+                                    <p className="text-sm font-semibold text-red-400">+{formatCurrency(dn.amount)}</p>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+
                       {/* REFUNDS SECTION */}
                       <div className="border border-white/15 rounded-lg overflow-hidden bg-white/5">
                         <button
@@ -3883,6 +4076,12 @@ export default function SalesOrderModal({
                           <p className="text-xs text-white/50 uppercase tracking-wide">Invoiced</p>
                           <p className="text-sm font-bold text-white">AED {formatCurrency(soaBalance.total_invoiced)}</p>
                         </div>
+                        {(soaBalance.total_debit_notes || 0) > 0 && (
+                          <div>
+                            <p className="text-xs text-white/50 uppercase tracking-wide">Debit Notes</p>
+                            <p className="text-sm font-bold text-red-400">+AED {formatCurrency(soaBalance.total_debit_notes)}</p>
+                          </div>
+                        )}
                         <div>
                           <p className="text-xs text-white/50 uppercase tracking-wide">Paid</p>
                           <p className="text-sm font-bold text-green-400">AED {formatCurrency(soaBalance.total_paid)}</p>
@@ -3943,6 +4142,7 @@ export default function SalesOrderModal({
                             key={`${row.reference}-${index}`}
                             className={`grid grid-cols-12 gap-2 px-4 py-3 text-sm ${
                               row.transaction_type === 'invoice' ? 'bg-white/[0.02]' :
+                              row.transaction_type === 'debit_note' ? 'bg-red-500/5' :
                               row.transaction_type === 'payment' ? 'bg-green-500/5' :
                               row.transaction_type === 'credit_note' ? 'bg-purple-500/5' :
                               row.transaction_type === 'refund' ? 'bg-orange-500/5' :
@@ -3960,6 +4160,7 @@ export default function SalesOrderModal({
                             <div className="col-span-2">
                               <span className={`text-xs font-medium ${
                                 row.transaction_type === 'invoice' ? 'text-white' :
+                                row.transaction_type === 'debit_note' ? 'text-red-400' :
                                 row.transaction_type === 'payment' ? 'text-green-400' :
                                 row.transaction_type === 'credit_note' ? 'text-purple-400' :
                                 row.transaction_type === 'refund' ? 'text-orange-400' :

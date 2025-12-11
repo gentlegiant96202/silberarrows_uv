@@ -621,6 +621,12 @@ function generateInvoiceHTML(formData: any, lineItems: LineItem[], logoSrc: stri
                 <td class="label-cell">TOTAL AMOUNT:</td>
                 <td class="value-cell" style="font-size: 14px;">${formatCurrency(totalAmount)}</td>
               </tr>
+              ${formData.debitNoteTotal > 0 ? `
+              <tr>
+                <td class="label-cell">Debit Notes:</td>
+                <td class="value-cell" style="color: #ef4444;">+${formatCurrency(formData.debitNoteTotal)}</td>
+              </tr>
+              ` : ''}
               ${formData.status === 'paid' ? `
               ${formData.paidAmount > 0 ? `
               <tr>
@@ -903,9 +909,10 @@ export async function POST(request: NextRequest) {
       manufacturerServiceKm: salesOrder.manufacturer_service_km,
       totalAmount: invoice.total_amount,
       paidAmount: invoice.paid_amount,
+      debitNoteTotal: invoice.debit_note_total || 0,
       creditNoteTotal: invoice.credit_note_total || 0,
       balanceDue: invoice.balance_due,
-      // Effective paid status: if balance_due <= 0 (accounts for credits) or status is 'paid'
+      // Effective paid status: if balance_due <= 0 (accounts for credits/debits) or status is 'paid'
       status: (invoice.balance_due <= 0 || invoice.status === 'paid') ? 'paid' : invoice.status,
       notes: salesOrder.notes
     };

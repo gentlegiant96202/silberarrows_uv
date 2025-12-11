@@ -124,11 +124,11 @@ function generateBankQuotationHTML(data: BankQuotationData, logoSrc: string, sta
         }
 
         .title {
-          font-size: 20px;
+          font-size: 26px;
           font-weight: 900;
           color: #1a1a1a;
-          letter-spacing: 0.5px;
-          line-height: 1.1;
+          letter-spacing: 1px;
+          line-height: 1.15;
         }
 
         .logo {

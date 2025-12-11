@@ -45,7 +45,9 @@ import {
   UserPlus,
   UsersRound,
   Grid3X3,
-  Target
+  Target,
+  Wallet,
+  Building2
 } from 'lucide-react';
 
 interface NavItem {
@@ -206,6 +208,8 @@ export default function Sidebar() {
           { key: 'sales_grid', label: 'Data Grid', icon: Grid3X3, href: '/accounts/dashboard?tab=sales&subtab=grid' },
           { key: 'sales_targets', label: 'Targets', icon: Target, href: '/accounts/dashboard?tab=sales&subtab=targets' },
           { key: 'sales_invoices', label: 'Invoices', icon: FileText, href: '/accounts/sales/invoices' },
+          { key: 'sales_unallocated', label: 'Unallocated Payments', icon: Wallet, href: '/accounts/sales/unallocated-payments' },
+          { key: 'sales_bank_finance', label: 'Bank Finance', icon: Building2, href: '/accounts/sales/bank-finance' },
           { key: 'sales_ledger', label: 'Ledger', icon: BookOpen, href: '/accounts/sales/ledger' }
         ]
       },

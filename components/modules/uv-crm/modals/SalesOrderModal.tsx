@@ -482,7 +482,7 @@ export default function SalesOrderModal({
     debits: false,
     refunds: false
   });
-  const toggleSection = (section: 'payments' | 'credits' | 'refunds') => {
+  const toggleSection = (section: 'payments' | 'credits' | 'debits' | 'refunds') => {
     setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }));
   };
   

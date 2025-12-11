@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/components/shared/AuthProvider';
-import { useIsAdminSimple } from '@/lib/useIsAdminSimple';
+import { useModulePermissions } from '@/lib/useModulePermissions';
 import { X, FileText, ArrowRightLeft, CreditCard, ClipboardList, ChevronDown, ChevronUp, Save, Loader2, Plus, Trash2, ScrollText, ExternalLink } from 'lucide-react';
 
 // ===== INTERFACES =====
@@ -300,7 +300,7 @@ export default function SalesOrderModal({
   initialAccountingStatus
 }: SalesOrderModalProps) {
   const { user } = useAuth();
-  const { isAdmin } = useIsAdminSimple();
+  const { canCreate, canEdit, canDelete } = useModulePermissions('uv_crm');
   const [activeTab, setActiveTab] = useState<TabKey>('sales_order');
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -2394,26 +2394,30 @@ export default function SalesOrderModal({
                   <div className="bg-white/5 border border-white/10 rounded-xl overflow-hidden">
                     <div className="px-4 py-2.5 bg-white/5 border-b border-white/10 flex items-center justify-between">
                       <h3 className="text-xs font-semibold text-white/80 uppercase tracking-wider">Line Items</h3>
-                      <button
-                        onClick={addLineItem}
-                        className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-black bg-gradient-to-r from-gray-200 via-white to-gray-200 hover:from-gray-100 hover:via-gray-50 hover:to-gray-100 rounded-lg transition-all shadow-sm"
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        Add Line
-                      </button>
+                      {canEdit && (
+                        <button
+                          onClick={addLineItem}
+                          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-black bg-gradient-to-r from-gray-200 via-white to-gray-200 hover:from-gray-100 hover:via-gray-50 hover:to-gray-100 rounded-lg transition-all shadow-sm"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          Add Line
+                        </button>
+                      )}
                     </div>
                     <div className="p-4">
                       {lineItems.length === 0 ? (
                         <div className="text-center py-8 text-white/40">
                           <FileText className="w-12 h-12 mx-auto mb-3 opacity-50" />
                           <p className="text-sm mb-3">No line items yet</p>
-                          <button
-                            onClick={addLineItem}
-                            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-gradient-to-r from-gray-200 via-white to-gray-200 hover:from-gray-100 hover:via-gray-50 hover:to-gray-100 rounded-lg transition-all shadow-sm"
-                          >
-                            <Plus className="w-4 h-4" />
-                            Add First Line Item
-                          </button>
+                          {canEdit && (
+                            <button
+                              onClick={addLineItem}
+                              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-gradient-to-r from-gray-200 via-white to-gray-200 hover:from-gray-100 hover:via-gray-50 hover:to-gray-100 rounded-lg transition-all shadow-sm"
+                            >
+                              <Plus className="w-4 h-4" />
+                              Add First Line Item
+                            </button>
+                          )}
                         </div>
                       ) : (
                         <div className="space-y-3">
@@ -2482,12 +2486,14 @@ export default function SalesOrderModal({
                                 {formatCurrency(Math.abs(item.line_total))}
                               </div>
                               <div className="col-span-1 flex justify-end">
-                                <button
-                                  onClick={() => removeLineItem(item.id)}
-                                  className="p-1.5 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
-                                >
-                                  <Trash2 className="w-4 h-4" />
-                                </button>
+                                {canEdit && (
+                                  <button
+                                    onClick={() => removeLineItem(item.id)}
+                                    className="p-1.5 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded transition-colors"
+                                  >
+                                    <Trash2 className="w-4 h-4" />
+                                  </button>
+                                )}
                               </div>
                             </div>
                           ))}
@@ -2550,15 +2556,15 @@ export default function SalesOrderModal({
 
               {activeTab === 'invoices' && (
                 <div className="space-y-4">
-                  {/* Header with Convert button - Admin Only */}
+                  {/* Header with Convert button - Requires canCreate permission */}
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-semibold text-white/80 uppercase tracking-wider">Invoices</h3>
-                    {existingSalesOrder && !isLocked && isAdmin && (
+                    {existingSalesOrder && !isLocked && canCreate && (
                       <button
                         onClick={handleConvertToInvoice}
                         disabled={convertingToInvoice || lineItems.length === 0}
                         className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-gradient-to-r from-gray-200 via-white to-gray-200 hover:from-gray-100 hover:via-gray-50 hover:to-gray-100 rounded-lg transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="Admin Only: Convert Sales Order to Invoice"
+                        title="Convert Sales Order to Invoice"
                       >
                         {convertingToInvoice ? (
                           <>
@@ -2798,8 +2804,8 @@ export default function SalesOrderModal({
                                   </div>
                                 )}
 
-                                {/* Reverse Action - Separate section */}
-                                {!isReversed && invoice.signing_status !== 'completed' && (
+                                {/* Reverse Action - Requires canDelete */}
+                                {!isReversed && invoice.signing_status !== 'completed' && canDelete && (
                                   <div className="pt-2 border-t border-white/5">
                                     <button
                                       onClick={(e) => { e.stopPropagation(); handleReverseInvoice(invoice); }}
@@ -2890,8 +2896,8 @@ export default function SalesOrderModal({
                         
                         {expandedSections.payments && (
                           <div className="p-3 space-y-2 border-t border-white/10">
-                            {/* Add Payment Button */}
-                            {!showAddPaymentForm && (
+                            {/* Add Payment Button - Requires canCreate */}
+                            {!showAddPaymentForm && canCreate && (
                               <button
                                 onClick={() => setShowAddPaymentForm(true)}
                                 className="w-full flex items-center justify-center gap-2 px-3 py-2 text-xs font-medium text-white/50 hover:text-white/70 border border-dashed border-white/10 hover:border-white/20 rounded-lg transition-all"
@@ -3049,8 +3055,8 @@ export default function SalesOrderModal({
                         
                         {expandedSections.credits && (
                           <div className="p-3 space-y-2 border-t border-white/10">
-                            {/* Add Credit Note Button */}
-                            {!showCreditNoteForm && (
+                            {/* Add Credit Note Button - Requires canCreate */}
+                            {!showCreditNoteForm && canCreate && (
                               <button
                                 onClick={() => setShowCreditNoteForm(invoices.find(i => i.status !== 'reversed' && i.balance_due > 0)?.id || 'select')}
                                 disabled={!invoices.some(i => i.status !== 'reversed' && i.balance_due > 0)}
@@ -3137,8 +3143,8 @@ export default function SalesOrderModal({
                         
                         {expandedSections.refunds && (
                           <div className="p-3 space-y-2 border-t border-white/10">
-                            {/* Add Refund Button */}
-                            {!showRefundForm && (
+                            {/* Add Refund Button - Requires canCreate */}
+                            {!showRefundForm && canCreate && (
                               <button
                                 onClick={() => setShowRefundForm(true)}
                                 disabled={!payments.some(p => (p.available_amount || 0) > 0)}
@@ -3511,8 +3517,8 @@ export default function SalesOrderModal({
                 </button>
               )}
               
-              {/* Create/Update/Regenerate Sales Order - Show when not locked */}
-              {activeTab === 'sales_order' && !isLocked && (
+              {/* Create/Update/Regenerate Sales Order - Requires canCreate (new) or canEdit (existing) */}
+              {activeTab === 'sales_order' && !isLocked && (existingSalesOrder ? canEdit : canCreate) && (
                 <button
                   onClick={handleSave}
                   disabled={saving || !canSave || saveSuccess}

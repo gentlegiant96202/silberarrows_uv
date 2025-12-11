@@ -2523,14 +2523,15 @@ export default function SalesOrderModal({
                     <div className="space-y-1">
                       <input
                         type="text"
-                        className={inputClass}
+                        className={`${inputClass} uppercase`}
                         value={formData.notes}
                         onChange={(e) => {
-                          if (e.target.value.length <= 150) {
-                            handleInputChange('notes', e.target.value);
+                          const upperValue = e.target.value.toUpperCase();
+                          if (upperValue.length <= 150) {
+                            handleInputChange('notes', upperValue);
                           }
                         }}
-                        placeholder="Use • to separate items (e.g. Free service • Floor mats included)"
+                        placeholder="USE • TO SEPARATE ITEMS (E.G. FREE SERVICE • FLOOR MATS)"
                         maxLength={150}
                       />
                       <div className="flex justify-between text-[10px] text-white/40">

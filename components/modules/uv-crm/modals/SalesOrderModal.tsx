@@ -2520,12 +2520,26 @@ export default function SalesOrderModal({
 
                   {/* Notes */}
                   <Section title="Additional Notes">
-                    <textarea
-                      className={`${inputClass} min-h-[80px] resize-none`}
-                      value={formData.notes}
-                      onChange={(e) => handleInputChange('notes', e.target.value)}
-                      placeholder="Any additional notes..."
-                    />
+                    <div className="space-y-1">
+                      <input
+                        type="text"
+                        className={inputClass}
+                        value={formData.notes}
+                        onChange={(e) => {
+                          if (e.target.value.length <= 150) {
+                            handleInputChange('notes', e.target.value);
+                          }
+                        }}
+                        placeholder="Use • to separate items (e.g. Free service • Floor mats included)"
+                        maxLength={150}
+                      />
+                      <div className="flex justify-between text-[10px] text-white/40">
+                        <span>Use • or / to separate multiple notes</span>
+                        <span className={formData.notes.length > 130 ? 'text-orange-400' : ''}>
+                          {formData.notes.length}/150
+                        </span>
+                      </div>
+                    </div>
                   </Section>
                   </fieldset>
                 </div>

@@ -52,16 +52,16 @@ function generateSalesOrderHTML(formData: any, lineItems: LineItem[], logoSrc: s
     }
 
     return lineItems.map((item, index) => {
-      const isPartExchange = item.line_type === 'part_exchange';
-      const displayTotal = isPartExchange ? -Math.abs(item.line_total) : item.line_total;
-      const totalColor = isPartExchange ? '#90EE90' : 'white';
-      const prefix = isPartExchange ? '- ' : '';
+      const isDeduction = item.line_type === 'part_exchange' || item.line_type === 'discount';
+      const displayTotal = isDeduction ? -Math.abs(item.line_total) : item.line_total;
+      const totalColor = isDeduction ? '#90EE90' : 'white';
+      const prefix = isDeduction ? '- ' : '';
       
       return `
         <tr>
           <td class="data" style="width: 50%;">${safeString(item.description)}</td>
           <td class="data" style="width: 10%; text-align: center;">${item.quantity}</td>
-          <td class="data" style="width: 20%; text-align: right;">${formatCurrency(item.unit_price)}</td>
+          <td class="data" style="width: 20%; text-align: right;">${isDeduction ? '-' : formatCurrency(item.unit_price)}</td>
           <td class="data" style="width: 20%; text-align: right; color: ${totalColor};">${prefix}${formatCurrency(Math.abs(displayTotal))}</td>
         </tr>
       `;
@@ -70,14 +70,18 @@ function generateSalesOrderHTML(formData: any, lineItems: LineItem[], logoSrc: s
 
   // Calculate totals
   const subtotal = lineItems
-    .filter(item => item.line_type !== 'part_exchange')
+    .filter(item => item.line_type !== 'part_exchange' && item.line_type !== 'discount')
     .reduce((sum, item) => sum + (Number(item.line_total) || 0), 0);
+  
+  const discountValue = lineItems
+    .filter(item => item.line_type === 'discount')
+    .reduce((sum, item) => sum + Math.abs(Number(item.line_total) || 0), 0);
   
   const partExchangeValue = lineItems
     .filter(item => item.line_type === 'part_exchange')
     .reduce((sum, item) => sum + Math.abs(Number(item.line_total) || 0), 0);
   
-  const totalAmount = subtotal - partExchangeValue;
+  const totalAmount = subtotal - discountValue - partExchangeValue;
 
   return `
     <!DOCTYPE html>
@@ -587,6 +591,12 @@ function generateSalesOrderHTML(formData: any, lineItems: LineItem[], logoSrc: s
                 <td class="label-cell">Subtotal:</td>
                 <td class="value-cell">${formatCurrency(subtotal)}</td>
               </tr>
+              ${discountValue > 0 ? `
+              <tr>
+                <td class="label-cell">Discount:</td>
+                <td class="value-cell" style="color: #90EE90;">- ${formatCurrency(discountValue)}</td>
+              </tr>
+              ` : ''}
               ${partExchangeValue > 0 ? `
               <tr>
                 <td class="label-cell">Part Exchange Credit:</td>

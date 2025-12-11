@@ -138,6 +138,9 @@ export default function AccountsLedger() {
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [selectedLead, setSelectedLead] = useState<any>(null);
   const [loadingLead, setLoadingLead] = useState<string | null>(null);
+  
+  // PDF generation state
+  const [generatingPdf, setGeneratingPdf] = useState<string | null>(null);
 
   const [filters, setFilters] = useState<FilterState>({
     fromDate: '',
@@ -296,6 +299,81 @@ export default function AccountsLedger() {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  };
+
+  // Generate and download PDF based on entry type
+  const generateAndDownloadPdf = async (entry: LedgerEntry) => {
+    setGeneratingPdf(entry.id);
+    
+    try {
+      let apiEndpoint = '';
+      let bodyPayload: any = {};
+      
+      // Determine which API to call based on entry type
+      switch (entry.entry_type) {
+        case 'invoice':
+          apiEndpoint = '/api/generate-invoice-document';
+          bodyPayload = { invoiceId: entry.source_id };
+          break;
+        case 'payment':
+          apiEndpoint = '/api/generate-receipt';
+          bodyPayload = { paymentId: entry.source_id };
+          break;
+        case 'credit_note':
+          apiEndpoint = '/api/generate-credit-note';
+          bodyPayload = { adjustmentId: entry.source_id };
+          break;
+        case 'refund':
+          apiEndpoint = '/api/generate-refund';
+          bodyPayload = { adjustmentId: entry.source_id };
+          break;
+        default:
+          throw new Error('Unknown entry type');
+      }
+      
+      // Call API to generate PDF
+      const response = await fetch(apiEndpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyPayload)
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate PDF');
+      }
+      
+      const data = await response.json();
+      const pdfUrl = data.pdfUrl || data.pdf_url;
+      
+      if (pdfUrl) {
+        // Update the entry in local state with new PDF URL
+        setEntries(prev => prev.map(e => 
+          e.id === entry.id ? { ...e, pdf_url: pdfUrl } : e
+        ));
+        
+        // Download the PDF
+        downloadPdf(pdfUrl, entry.document_number);
+      } else {
+        throw new Error('No PDF URL returned');
+      }
+    } catch (error: any) {
+      console.error('Error generating PDF:', error);
+      alert('Error generating PDF: ' + error.message);
+    } finally {
+      setGeneratingPdf(null);
+    }
+  };
+
+  // Handle PDF button click - generate if needed, then download
+  const handlePdfClick = async (entry: LedgerEntry) => {
+    if (entry.pdf_url) {
+      // PDF exists, just download
+      downloadPdf(entry.pdf_url, entry.document_number);
+    } else {
+      // Generate first, then download
+      await generateAndDownloadPdf(entry);
+    }
   };
 
   // Initial load
@@ -737,16 +815,20 @@ export default function AccountsLedger() {
                       </span>
                     </td>
                     <td className="px-4 py-3 text-center" onClick={(e) => e.stopPropagation()}>
-                      {entry.pdf_url ? (
+                      {generatingPdf === entry.id ? (
+                        <Loader2 className="w-4 h-4 animate-spin text-white/50 mx-auto" />
+                      ) : (
                         <button
-                          onClick={() => downloadPdf(entry.pdf_url!, entry.document_number)}
-                          className="p-1.5 text-white/40 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
-                          title="Download PDF"
+                          onClick={() => handlePdfClick(entry)}
+                          className={`p-1.5 rounded-lg transition-colors ${
+                            entry.pdf_url 
+                              ? 'text-green-400/70 hover:text-green-400 hover:bg-green-500/10' 
+                              : 'text-white/30 hover:text-white hover:bg-white/10'
+                          }`}
+                          title={entry.pdf_url ? 'Download PDF' : 'Generate & Download PDF'}
                         >
                           <FileDown className="w-4 h-4" />
                         </button>
-                      ) : (
-                        <span className="text-white/20">-</span>
                       )}
                     </td>
                   </tr>

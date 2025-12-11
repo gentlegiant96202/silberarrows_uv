@@ -83,7 +83,7 @@ function generateInvoiceHTML(formData: any, lineItems: LineItem[], logoSrc: stri
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>TAX INVOICE</title>
+      <title>INVOICE</title>
       <style>
         @page {
           margin: 0;
@@ -470,7 +470,7 @@ function generateInvoiceHTML(formData: any, lineItems: LineItem[], logoSrc: stri
       <div class="page first-page">
         <div class="header">
           <div class="title-section">
-            <div class="title">PRE-OWNED VEHICLE<br>TAX INVOICE</div>
+            <div class="title">PRE-OWNED VEHICLE<br>INVOICE</div>
           </div>
           <img src="${logoSrc}" alt="SilberArrows Logo" class="logo">
         </div>

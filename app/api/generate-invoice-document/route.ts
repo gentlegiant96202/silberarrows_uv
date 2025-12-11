@@ -672,13 +672,13 @@ function generateInvoiceHTML(formData: any, lineItems: LineItem[], logoSrc: stri
               <div class="terms-col">
 <strong>Silber Arrows 1934 Used Car Trading LLC</strong> (hereinafter referred to as "SilberArrows")
 
-<strong>1. INTRODUCTION</strong> SilberArrows adheres to Federal Law No. 15 of 2020 on Consumer Protection. These terms and conditions govern the sale of pre-owned vehicles by SilberArrows. By signing this Invoice, you agree to be bound by these terms and conditions.
+<strong>1. INTRODUCTION</strong> SilberArrows adheres to Federal Law No. 15 of 2020 on Consumer Protection. These terms and conditions govern the sale of pre-owned vehicles by SilberArrows. By purchasing a vehicle from us, you agree to be bound by these terms and conditions.
 
 <strong>2. VEHICLE INFORMATION</strong> All vehicles are sold as seen and described in the invoice. We ensure that all descriptions and representations of vehicles are accurate to the best of our knowledge.
 
 <strong>3. PRICE AND PAYMENT</strong>
 • The price of the vehicle is as stated in the invoice. Prices include VAT unless stated otherwise.
-• Payment can be made via bank transfer, credit/debit card (with a 2% surcharge), cash, cheque, or any other method agreed upon in writing.
+• Payment can be made via bank transfer, credit/debit card (with a %2 surcharge), cash, cheque, or any other method agreed upon in writing.
 • Full payment must be received before the vehicle can be released to the buyer.
 
 <strong>4. DEPOSITS</strong> A deposit may be required to secure a vehicle. This deposit is non-refundable unless otherwise stated in the invoice or required by law.
@@ -693,45 +693,46 @@ function generateInvoiceHTML(formData: any, lineItems: LineItem[], logoSrc: stri
 • Part exchange vehicles must be delivered with all relevant documentation and in the condition described during the valuation.
 
 <strong>7. WARRANTY & DEALER SERVICE PACKAGE</strong>
-• Vehicles may come with a manufacturer's warranty and/or dealer service package as specified in the invoice.
-• For vehicles without any manufacturer's warranty, SilberArrows offers Extended Warranty and ServiceCare products.
+• Vehicles may come with a manufacturer's warranty and/or dealer service package as specified in the invoice. For vehicles that have a manufacturer's warranty and/or dealer service package, the expiry date or mileage will be stated on the invoice.
+• For vehicles without any manufacturer's warranty and/or dealer service package, SilberArrows offers the Extended Warranty and ServiceCare products. If the customer has chosen to purchase one or both products, the prices are detailed in the 'ADD-ONS' section of the invoice.
 • Any warranty offered does not affect your statutory rights.
 
 <strong>8. VEHICLE CONDITION AND INSPECTION</strong>
 • The buyer is responsible for inspecting the vehicle prior to purchase.
 • Any defects or issues should be reported to SilberArrows before the completion of the sale.
+
+<strong>Acknowledgement</strong>
               </div>
               <div class="terms-col">
 <strong>9. RETURNS AND REFUNDS</strong>
 • Returns are only accepted if agreed in writing by SilberArrows.
-• Refunds will be processed in accordance with the terms specified in this invoice and applicable law.
+• Refunds will be processed in accordance with the terms specified in this invoice and applicable law. For the avoidance of doubt, deposits are non-refundable except as stated in Section 4.
 
 <strong>10. LIMITATION OF LIABILITY</strong>
-• SilberArrows is not liable for any indirect or consequential loss or damage arising out of or in connection with the sale of the vehicle.
+• SilberArrows is not liable for any indirect or consequential loss or damage arising out of or in connection with the reservation or sale of the vehicle.
 • Our liability is limited to the purchase price of the vehicle.
 
 <strong>11. DATA PROTECTION</strong>
-• Personal information collected during the sales process will be used in accordance with our Privacy Policy at https://www.silberarrows.com/privacy-policy/.
+• Personal information collected during the sales process will be used in accordance with our Privacy Policy, which can be viewed at https://www.silberarrows.com/privacy-policy/.
 • We may share your information with third parties involved in the sale and financing of the vehicle.
 
 <strong>12. GOVERNING LAW</strong>
 • These terms and conditions are governed by the laws of the Emirate of Dubai.
-• Any disputes arising out of or in connection with these terms will be subject to the exclusive jurisdiction of the courts of Dubai.
+• Any disputes arising out of or in connection with these terms and conditions will be subject to the exclusive jurisdiction of the courts of Dubai.
 
-<strong>13. CHANGES TO TERMS AND CONDITIONS</strong> SilberArrows reserves the right to change these terms and conditions at any time. Changes will apply to sales made after the date of the change.
+<strong>13. CHANGES TO TERMS AND CONDITIONS</strong> SilberArrows reserves the right to change these terms and conditions at any time. Any changes will be posted on our website and will apply to sales made after the date of the change.
 
-<strong>14. DISTANCE SELLING</strong> If the invoice is completed without face-to-face contact, you may cancel within 7 days. The cancellation period expires upon the transfer of ownership of the vehicle.
+<strong>14. DISTANCE SELLING</strong> If the invoice is completed without face-to-face contact, you may cancel the purchase within 7 days. The cancellation period expires upon the transfer of ownership of the vehicle.
 
-<strong>15. FORCE MAJEURE</strong> SilberArrows shall not be liable for any failure to perform its obligations due to events beyond its control.
+<strong>15. FORCE MAJEURE</strong> SilberArrows shall not be liable for any failure to perform its obligations due to events beyond its control, including but not limited to natural disasters, war, civil commotion, and strikes.
 
-<strong>16. INSURANCE GOVERNANCE</strong> It is the customer's responsibility to ensure that their vehicle is adequately insured while it is in the possession of SilberArrows.
+<strong>16. INSURANCE GOVERNANCE</strong> It is the customer's responsibility to ensure that their vehicle is adequately insured while it is in the possession of SilberArrows. We are not liable for any damage or loss to the vehicle due to theft, fire, or any other unforeseen events while it is on our premises.
 
-<strong>17. TITLE AND RISK</strong> The title to the vehicle will pass to the buyer upon full payment. Risk in the vehicle will pass to the buyer upon delivery or collection.
+<strong>17. TITLE AND RISK</strong> The title to the vehicle will pass to the buyer upon full payment of the purchase price. Risk in the vehicle will pass to the buyer upon delivery or collection.
 
-<strong>18. INDEMNITY</strong> The buyer agrees to indemnify and hold SilberArrows harmless from all liabilities arising out of the buyer's breach of these terms.
+<strong>18. INDEMNITY</strong> The buyer agrees to indemnify and hold SilberArrows harmless from all liabilities, damages, losses, and costs (including legal fees) arising out of the buyer's breach of these terms and conditions.
 
-<strong>19. ENTIRE AGREEMENT</strong> These terms and conditions, together with the invoice, constitute the entire agreement between the parties.
-
+<strong>19. ENTIRE AGREEMENT</strong> These terms and conditions, together with the invoice, constitute the entire agreement between the parties and supersede all prior agreements, understandings, or representations.
               </div>
             </div>
           </div>
@@ -739,19 +740,19 @@ function generateInvoiceHTML(formData: any, lineItems: LineItem[], logoSrc: stri
           <!-- SIGNATURE SECTION -->
           <div class="section">
             <div class="text-content" style="margin-bottom: 8px; text-align: left;">
-              <strong>Acknowledgement</strong><br><br>I acknowledge that I have read, understood, and agree to the terms and conditions set out in this invoice.
+              I acknowledge that I have read, understood, and agree to the terms and conditions set out in this invoice.
             </div>
             <div class="signature-section" style="margin-top: 6px;">
               <div class="signature-box">
                 <div>SilberArrows Signature:</div>
                 <div class="signature-area" style="height: 60px;">
-                  <div class="signature-date">Date:</div>
+                  <div class="signature-date"></div>
                 </div>
               </div>
               <div class="signature-box">
                 <div>Customer Signature:</div>
                 <div class="signature-area" style="height: 60px;">
-                  <div class="signature-date">Date:</div>
+                  <div class="signature-date"></div>
                 </div>
               </div>
             </div>

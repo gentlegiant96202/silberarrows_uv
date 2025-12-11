@@ -206,7 +206,8 @@ COMMENT ON COLUMN uv_payments.refunded_amount IS 'Total amount refunded from thi
 -- PART 5: CREATE HELPER VIEW FOR PAYMENT STATUS
 -- =====================================================
 
-CREATE OR REPLACE VIEW uv_payment_status AS
+DROP VIEW IF EXISTS uv_payment_status;
+CREATE VIEW uv_payment_status AS
 SELECT 
     p.id,
     p.payment_number,

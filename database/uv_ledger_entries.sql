@@ -14,7 +14,7 @@ CREATE TABLE IF NOT EXISTS uv_ledger_entries (
     
     -- Transaction details
     transaction_date DATE NOT NULL,
-    entry_type TEXT NOT NULL CHECK (entry_type IN ('invoice', 'payment', 'credit_note', 'refund', 'invoice_reversal')),
+    entry_type TEXT NOT NULL CHECK (entry_type IN ('invoice', 'payment', 'credit_note', 'refund')),
     
     -- Document reference
     document_number TEXT NOT NULL,
@@ -112,70 +112,10 @@ CREATE TRIGGER trg_ledger_invoice_created
     FOR EACH ROW
     EXECUTE FUNCTION ledger_on_invoice_created();
 
--- 4. Trigger: When INVOICE is reversed → add reversal entry
-CREATE OR REPLACE FUNCTION ledger_on_invoice_reversed()
-RETURNS TRIGGER AS $$
-DECLARE
-    v_lead RECORD;
-    v_lead_id UUID;
-BEGIN
-    -- Only trigger when status changes TO reversed
-    IF NEW.status = 'reversed' AND (OLD.status IS NULL OR OLD.status != 'reversed') THEN
-        -- Get lead_id from sales order
-        SELECT so.lead_id INTO v_lead_id
-        FROM uv_sales_orders so
-        WHERE so.id = NEW.sales_order_id;
-        
-        -- Get customer details
-        SELECT full_name, customer_number, phone_number 
-        INTO v_lead
-        FROM leads 
-        WHERE id = v_lead_id;
-        
-        -- Insert reversal entry
-        INSERT INTO uv_ledger_entries (
-            transaction_date,
-            entry_type,
-            document_number,
-            description,
-            debit,
-            credit,
-            lead_id,
-            customer_name,
-            customer_number,
-            customer_phone,
-            source_table,
-            source_id,
-            pdf_url,
-            created_by
-        ) VALUES (
-            COALESCE(NEW.reversed_at::date, CURRENT_DATE),
-            'invoice_reversal',
-            NEW.invoice_number,
-            'Invoice Reversed: ' || COALESCE(NEW.reversal_reason, 'No reason'),
-            0,
-            NEW.total_amount,
-            v_lead_id,
-            COALESCE(v_lead.full_name, 'Unknown'),
-            v_lead.customer_number,
-            v_lead.phone_number,
-            'uv_invoices',
-            NEW.id,
-            NULL,
-            NEW.reversed_by
-        )
-        ON CONFLICT (source_table, source_id, entry_type) DO NOTHING;
-    END IF;
-    
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
-DROP TRIGGER IF EXISTS trg_ledger_invoice_reversed ON uv_invoices;
-CREATE TRIGGER trg_ledger_invoice_reversed
-    AFTER UPDATE ON uv_invoices
-    FOR EACH ROW
-    EXECUTE FUNCTION ledger_on_invoice_reversed();
+-- 4. NOTE: We do NOT create invoice_reversal entries
+-- The reverse_invoice function creates a Credit Note which handles the accounting
+-- Creating a separate reversal entry would cause double-counting
+-- Credit Notes with reason "Invoice Reversal: ..." show up in ledger automatically
 
 -- 5. Trigger: When PAYMENT is created → add ledger entry
 CREATE OR REPLACE FUNCTION ledger_on_payment_created()

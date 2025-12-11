@@ -25,7 +25,7 @@ interface LedgerEntry {
   id: string;
   posted_at: string;
   transaction_date: string;
-  entry_type: 'invoice' | 'payment' | 'credit_note' | 'refund' | 'invoice_reversal';
+  entry_type: 'invoice' | 'payment' | 'credit_note' | 'refund';
   document_number: string;
   description: string;
   debit: number;
@@ -90,7 +90,6 @@ const formatDateTime = (dateString: string) => {
 const getTransactionIcon = (type: string) => {
   switch (type) {
     case 'invoice': return <FileText className="w-4 h-4" />;
-    case 'invoice_reversal': return <FileText className="w-4 h-4" />;
     case 'payment': return <CreditCard className="w-4 h-4" />;
     case 'credit_note': return <Receipt className="w-4 h-4" />;
     case 'refund': return <RefreshCw className="w-4 h-4" />;
@@ -101,7 +100,6 @@ const getTransactionIcon = (type: string) => {
 const getTransactionColor = (type: string) => {
   switch (type) {
     case 'invoice': return 'text-white bg-white/10';
-    case 'invoice_reversal': return 'text-red-400 bg-red-500/10';
     case 'payment': return 'text-green-400 bg-green-500/10';
     case 'credit_note': return 'text-purple-400 bg-purple-500/10';
     case 'refund': return 'text-orange-400 bg-orange-500/10';
@@ -112,7 +110,6 @@ const getTransactionColor = (type: string) => {
 const getTransactionLabel = (type: string) => {
   switch (type) {
     case 'invoice': return 'Invoice';
-    case 'invoice_reversal': return 'Reversal';
     case 'payment': return 'Payment';
     case 'credit_note': return 'Credit Note';
     case 'refund': return 'Refund';
@@ -590,7 +587,6 @@ export default function AccountsLedger() {
                   <option value="payment">Payments</option>
                   <option value="credit_note">Credit Notes</option>
                   <option value="refund">Refunds</option>
-                  <option value="invoice_reversal">Reversals</option>
                 </select>
               </div>
               <div className="flex items-end gap-2">

@@ -2467,31 +2467,47 @@ export default function SalesOrderModal({
 
   // Save line items to database
   const saveLineItems = async (salesOrderId: string) => {
+    if (!salesOrderId) {
+      console.error('saveLineItems: No salesOrderId provided');
+      return;
+    }
+    
+    console.log('saveLineItems called with:', { salesOrderId, lineItemsCount: lineItems.length });
+    
     try {
       // Delete existing line items for this sales order
-      await supabase
+      const { error: deleteError } = await supabase
         .from('uv_sales_order_lines')
         .delete()
         .eq('sales_order_id', salesOrderId);
+      
+      if (deleteError) {
+        console.error('Error deleting existing line items:', deleteError);
+      }
       
       // Insert new line items
       if (lineItems.length > 0) {
         const lineItemsToInsert = lineItems.map((item, index) => ({
           sales_order_id: salesOrderId,
-          line_type: item.line_type,
-          description: item.description,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          line_total: item.line_total,
+          line_type: item.line_type || 'other',
+          description: item.description || '',
+          quantity: Number(item.quantity) || 1,
+          unit_price: Number(item.unit_price) || 0,
+          line_total: Number(item.line_total) || 0,
           sort_order: index + 1
         }));
+        
+        console.log('Inserting line items:', JSON.stringify(lineItemsToInsert, null, 2));
         
         const { data: insertedItems, error } = await supabase
           .from('uv_sales_order_lines')
           .insert(lineItemsToInsert)
           .select();
         
-        if (error) throw error;
+        if (error) {
+          console.error('Supabase insert error:', error);
+          throw error;
+        }
         
         // Update local state with the new IDs from database
         if (insertedItems) {
@@ -2508,6 +2524,11 @@ export default function SalesOrderModal({
       }
     } catch (error: any) {
       console.error('Error saving line items:', error);
+      console.error('Error details:', JSON.stringify(error, null, 2));
+      console.error('Error message:', error?.message);
+      console.error('Error code:', error?.code);
+      console.error('Error hint:', error?.hint);
+      console.error('Error details:', error?.details);
       // Don't throw - line items table might not exist yet
       if (!error.message?.includes('does not exist')) {
         throw error;

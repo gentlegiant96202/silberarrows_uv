@@ -375,8 +375,8 @@ function generateBankQuotationHTML(data: BankQuotationData, logoSrc: string, sta
               <tr>
                 <td class="label">Valid Until:</td>
                 <td class="data">${formatDate(data.validUntil)}</td>
-                <td class="label">Status:</td>
-                <td class="data"><strong>QUOTATION</strong></td>
+                <td class="label">Addressed To:</td>
+                <td class="data"><strong>${safeString(data.bankName)}</strong></td>
               </tr>
             </table>
           </div>

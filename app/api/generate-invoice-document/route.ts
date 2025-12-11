@@ -718,8 +718,6 @@ function generateInvoiceHTML(formData: any, lineItems: LineItem[], logoSrc: stri
 <strong>8. VEHICLE CONDITION AND INSPECTION</strong>
 • The buyer is responsible for inspecting the vehicle prior to purchase.
 • Any defects or issues should be reported to SilberArrows before the completion of the sale.
-
-<strong>Acknowledgement</strong>
               </div>
               <div class="terms-col">
 <strong>9. RETURNS AND REFUNDS</strong>
@@ -755,8 +753,9 @@ function generateInvoiceHTML(formData: any, lineItems: LineItem[], logoSrc: stri
             </div>
           </div>
 
-          <!-- SIGNATURE SECTION -->
+          <!-- ACKNOWLEDGEMENT & SIGNATURE SECTION -->
           <div class="section">
+            <div class="section-title" style="text-align: left; margin-bottom: 10px;">ACKNOWLEDGEMENT</div>
             <div class="text-content" style="margin-bottom: 8px; text-align: left;">
               I acknowledge that I have read, understood, and agree to the terms and conditions set out in this invoice.
             </div>

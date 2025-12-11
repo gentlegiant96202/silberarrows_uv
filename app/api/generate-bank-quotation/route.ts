@@ -274,6 +274,10 @@ function generateBankQuotationHTML(data: BankQuotationData, logoSrc: string, sta
           text-align: center;
         }
 
+        .signature-box.stamp {
+          flex: 1.3;
+        }
+
         .signature-label {
           font-size: 9px;
           text-transform: uppercase;
@@ -298,6 +302,14 @@ function generateBankQuotationHTML(data: BankQuotationData, logoSrc: string, sta
           max-height: 110px;
           max-width: 90%;
           object-fit: contain;
+        }
+
+        .signature-box.stamp .signature-area {
+          height: 150px;
+        }
+
+        .signature-box.stamp .signature-area img {
+          max-height: 140px;
         }
 
         .signature-name {
@@ -435,17 +447,17 @@ function generateBankQuotationHTML(data: BankQuotationData, logoSrc: string, sta
           <!-- SIGNATURE SECTION -->
           <div class="signature-section">
             <div class="signature-box">
-              <div class="signature-label">Company Stamp</div>
-              <div class="signature-area">
-                ${stampSrc ? `<img src="${stampSrc}" alt="Company Stamp">` : ''}
-              </div>
-            </div>
-            <div class="signature-box">
               <div class="signature-label">Authorized Signature</div>
               <div class="signature-area">
                 ${signatureSrc ? `<img src="${signatureSrc}" alt="Signature">` : ''}
               </div>
               <div class="signature-name">Glen Hawkins</div>
+            </div>
+            <div class="signature-box stamp">
+              <div class="signature-label">Company Stamp</div>
+              <div class="signature-area">
+                ${stampSrc ? `<img src="${stampSrc}" alt="Company Stamp">` : ''}
+              </div>
             </div>
           </div>
 

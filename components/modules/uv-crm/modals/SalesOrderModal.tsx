@@ -2247,8 +2247,17 @@ export default function SalesOrderModal({
         bank_quotation_number: result.quotationNumber,
       } : null);
 
-      // Open PDF
-      window.open(result.pdfUrl, '_blank');
+      // Force download PDF
+      const pdfResponse = await fetch(result.pdfUrl);
+      const blob = await pdfResponse.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `Bank_Quotation_${result.quotationNumber || 'Document'}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
     } catch (error: any) {
       console.error('Error generating bank quotation:', error);
       alert('Error: ' + error.message);

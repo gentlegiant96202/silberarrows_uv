@@ -2220,6 +2220,8 @@ export default function SalesOrderModal({
     }
   };
 
+  const [downloadingAllDocs, setDownloadingAllDocs] = useState(false);
+
   const handleGenerateBankQuotation = async () => {
     if (!selectedBfApp) return;
     
@@ -2252,6 +2254,48 @@ export default function SalesOrderModal({
       alert('Error: ' + error.message);
     } finally {
       setGeneratingBankQuotation(false);
+    }
+  };
+
+  const handleDownloadAllDocuments = async () => {
+    if (!selectedBfApp) return;
+    
+    setDownloadingAllDocs(true);
+    try {
+      const response = await fetch('/api/download-bank-finance-documents', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationId: selectedBfApp.id }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error || 'Failed to download documents');
+      }
+
+      // Get the blob and trigger download
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = 'BankFinance_Documents.zip';
+      if (contentDisposition) {
+        const match = contentDisposition.match(/filename="(.+)"/);
+        if (match) filename = match[1];
+      }
+
+      // Create download link
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error: any) {
+      console.error('Error downloading documents:', error);
+      alert('Error: ' + error.message);
+    } finally {
+      setDownloadingAllDocs(false);
     }
   };
 
@@ -4412,6 +4456,29 @@ export default function SalesOrderModal({
                               })}
                             </div>
                           </>
+                        )}
+
+                        {/* Download All Documents Button */}
+                        {(bfDocuments.length > 0 || selectedBfApp.bank_quotation_pdf_url) && (
+                          <div className="pt-3 border-t border-white/10">
+                            <button
+                              onClick={handleDownloadAllDocuments}
+                              disabled={downloadingAllDocs}
+                              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-xs font-medium text-black bg-white hover:bg-white/90 rounded-lg transition-colors disabled:opacity-50"
+                            >
+                              {downloadingAllDocs ? (
+                                <>
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                  Preparing ZIP...
+                                </>
+                              ) : (
+                                <>
+                                  <Download className="w-4 h-4" />
+                                  Download All Documents (ZIP)
+                                </>
+                              )}
+                            </button>
+                          </div>
                         )}
                       </div>
 

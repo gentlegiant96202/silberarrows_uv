@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 
-// WhatsApp webhook URL - replace with your actual webhook URL
-const WHATSAPP_WEBHOOK_URL = process.env.WHATSAPP_WEBHOOK_URL || '';
+// WhatsApp webhook URL - BotHook integration
+const WHATSAPP_WEBHOOK_URL = process.env.WHATSAPP_WEBHOOK_URL || 'https://bothook.io/v1/public/triggers/webhooks/49119f49-7828-4359-9c33-31bb6e92b689';
 
 export async function POST(request: NextRequest) {
   try {

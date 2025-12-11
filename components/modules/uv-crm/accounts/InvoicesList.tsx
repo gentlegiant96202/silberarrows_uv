@@ -68,11 +68,11 @@ const formatDate = (dateString: string) => {
 
 const getStatusIcon = (status: string) => {
   switch (status) {
-    case 'paid': return <CheckCircle className="w-4 h-4" />;
-    case 'partial': return <Clock className="w-4 h-4" />;
-    case 'pending': return <Clock className="w-4 h-4" />;
-    case 'reversed': return <XCircle className="w-4 h-4" />;
-    default: return <FileText className="w-4 h-4" />;
+    case 'paid': return <CheckCircle className="w-3 h-3" />;
+    case 'partial': return <Clock className="w-3 h-3" />;
+    case 'pending': return <Clock className="w-3 h-3" />;
+    case 'reversed': return <XCircle className="w-3 h-3" />;
+    default: return <FileText className="w-3 h-3" />;
   }
 };
 
@@ -455,23 +455,24 @@ export default function InvoicesList() {
             <p className="text-lg">No invoices found</p>
           </div>
         ) : (
-          <table className="w-full">
-            <thead className="sticky top-0 bg-black/95 backdrop-blur-sm z-10">
-              <tr className="border-b border-white/10">
-                <th className="px-4 py-3 text-left text-xs font-medium text-white/50 uppercase tracking-wider w-10"></th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white/50 uppercase tracking-wider">Invoice</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white/50 uppercase tracking-wider">Date</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white/50 uppercase tracking-wider">Customer</th>
-                <th className="px-4 py-3 text-left text-xs font-medium text-white/50 uppercase tracking-wider">Vehicle</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-white/50 uppercase tracking-wider">Total</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-white/50 uppercase tracking-wider">Paid</th>
-                <th className="px-4 py-3 text-right text-xs font-medium text-white/50 uppercase tracking-wider">Balance</th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-white/50 uppercase tracking-wider">Status</th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-white/50 uppercase tracking-wider">Age</th>
-                <th className="px-4 py-3 text-center text-xs font-medium text-white/50 uppercase tracking-wider w-20"></th>
+          <table className="w-full border-collapse border border-white/20">
+            <thead className="sticky top-0 bg-zinc-900 z-10">
+              <tr>
+                <th className="px-2 py-2.5 text-center text-[10px] font-semibold text-white/70 uppercase tracking-wider border border-white/20 bg-zinc-800 w-10"></th>
+                <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-white/70 uppercase tracking-wider border border-white/20 bg-zinc-800 w-28">Invoice</th>
+                <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-white/70 uppercase tracking-wider border border-white/20 bg-zinc-800 w-24">Date</th>
+                <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-white/70 uppercase tracking-wider border border-white/20 bg-zinc-800 w-24">CIN</th>
+                <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-white/70 uppercase tracking-wider border border-white/20 bg-zinc-800 w-44">Customer</th>
+                <th className="px-3 py-2.5 text-left text-[10px] font-semibold text-white/70 uppercase tracking-wider border border-white/20 bg-zinc-800 w-40">Vehicle</th>
+                <th className="px-3 py-2.5 text-right text-[10px] font-semibold text-white/70 uppercase tracking-wider border border-white/20 bg-zinc-800 w-24">Total</th>
+                <th className="px-3 py-2.5 text-right text-[10px] font-semibold text-white/70 uppercase tracking-wider border border-white/20 bg-zinc-800 w-24">Paid</th>
+                <th className="px-3 py-2.5 text-right text-[10px] font-semibold text-white/70 uppercase tracking-wider border border-white/20 bg-zinc-800 w-24">Balance</th>
+                <th className="px-3 py-2.5 text-center text-[10px] font-semibold text-white/70 uppercase tracking-wider border border-white/20 bg-zinc-800 w-20">Status</th>
+                <th className="px-3 py-2.5 text-center text-[10px] font-semibold text-white/70 uppercase tracking-wider border border-white/20 bg-zinc-800 w-14">Age</th>
+                <th className="px-2 py-2.5 text-center text-[10px] font-semibold text-white/70 uppercase tracking-wider border border-white/20 bg-zinc-800 w-12"></th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
+            <tbody>
               {invoices.map((invoice) => {
                 const agingDays = getAgingDays(invoice.invoice_date);
                 const isExpanded = expandedInvoice === invoice.id;
@@ -479,62 +480,64 @@ export default function InvoicesList() {
                 return (
                   <React.Fragment key={invoice.id}>
                     <tr 
-                      className={`hover:bg-white/5 transition-colors ${isExpanded ? 'bg-white/5' : ''}`}
+                      className={`hover:bg-white/10 transition-colors ${isExpanded ? 'bg-white/5' : ''}`}
                     >
-                      <td className="px-4 py-3 cursor-pointer" onClick={(e) => toggleExpand(invoice.id, e)}>
-                        <ChevronRight className={`w-4 h-4 text-white/40 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                      <td className="px-2 py-2 border border-white/20 bg-black text-center cursor-pointer" onClick={(e) => toggleExpand(invoice.id, e)}>
+                        <ChevronRight className={`w-3.5 h-3.5 text-white/40 transition-transform mx-auto ${isExpanded ? 'rotate-90' : ''}`} />
                       </td>
-                      <td className="px-4 py-3 cursor-pointer" onClick={() => openAccountModal(invoice)}>
-                        <span className="text-sm font-mono text-white">{invoice.invoice_number}</span>
-                        <div className="text-xs text-white/40">{invoice.order_number}</div>
+                      <td className="px-3 py-2 border border-white/20 bg-black cursor-pointer" onClick={() => openAccountModal(invoice)}>
+                        <span className="text-xs font-mono text-amber-400">{invoice.invoice_number}</span>
+                        <div className="text-[10px] text-white/40">{invoice.order_number}</div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-white/70 cursor-pointer" onClick={() => openAccountModal(invoice)}>
+                      <td className="px-3 py-2 border border-white/20 bg-black text-xs text-white/70 cursor-pointer" onClick={() => openAccountModal(invoice)}>
                         {formatDate(invoice.invoice_date)}
                       </td>
-                      <td className="px-4 py-3 cursor-pointer" onClick={() => openAccountModal(invoice)}>
-                        <div className="text-sm text-white">{invoice.customer_name}</div>
-                        <div className="text-xs text-white/40">{invoice.customer_number || invoice.customer_phone}</div>
+                      <td className="px-3 py-2 border border-white/20 bg-black cursor-pointer" onClick={() => openAccountModal(invoice)}>
+                        <span className="text-xs font-mono text-white/70">{invoice.customer_number || '-'}</span>
                       </td>
-                      <td className="px-4 py-3 cursor-pointer" onClick={() => openAccountModal(invoice)}>
-                        <div className="text-sm text-white/70 truncate max-w-[200px]" title={invoice.vehicle_make_model}>
+                      <td className="px-3 py-2 border border-white/20 bg-black cursor-pointer" onClick={() => openAccountModal(invoice)}>
+                        <div className="text-xs text-white truncate">{invoice.customer_name}</div>
+                      </td>
+                      <td className="px-3 py-2 border border-white/20 bg-black cursor-pointer" onClick={() => openAccountModal(invoice)}>
+                        <div className="text-[10px] text-white/60 truncate" title={invoice.vehicle_make_model}>
                           {invoice.vehicle_make_model}
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-right text-sm text-white font-medium cursor-pointer" onClick={() => openAccountModal(invoice)}>
+                      <td className="px-3 py-2 border border-white/20 bg-black text-right text-xs text-white font-medium cursor-pointer" onClick={() => openAccountModal(invoice)}>
                         {formatCurrency(invoice.total_amount)}
                       </td>
-                      <td className="px-4 py-3 text-right text-sm text-green-400 cursor-pointer" onClick={() => openAccountModal(invoice)}>
+                      <td className="px-3 py-2 border border-white/20 bg-black text-right text-xs text-green-400 cursor-pointer" onClick={() => openAccountModal(invoice)}>
                         {formatCurrency(invoice.paid_amount || 0)}
                       </td>
-                      <td className="px-4 py-3 text-right cursor-pointer" onClick={() => openAccountModal(invoice)}>
-                        <span className={`text-sm font-medium ${
+                      <td className="px-3 py-2 border border-white/20 bg-black text-right cursor-pointer" onClick={() => openAccountModal(invoice)}>
+                        <span className={`text-xs font-medium ${
                           invoice.balance_due > 0 ? 'text-red-400' : 'text-green-400'
                         }`}>
                           {formatCurrency(invoice.balance_due || 0)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center cursor-pointer" onClick={() => openAccountModal(invoice)}>
-                        <span className={`inline-flex items-center gap-1.5 px-2 py-1 rounded-md text-xs font-medium ${getStatusColor(invoice.status)}`}>
+                      <td className="px-2 py-2 border border-white/20 bg-black text-center cursor-pointer" onClick={() => openAccountModal(invoice)}>
+                        <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${getStatusColor(invoice.status)}`}>
                           {getStatusIcon(invoice.status)}
                           {invoice.status.charAt(0).toUpperCase() + invoice.status.slice(1)}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center cursor-pointer" onClick={() => openAccountModal(invoice)}>
-                        <span className={`text-sm font-medium ${getAgingColor(agingDays, invoice.status)}`}>
+                      <td className="px-2 py-2 border border-white/20 bg-black text-center cursor-pointer" onClick={() => openAccountModal(invoice)}>
+                        <span className={`text-xs font-medium ${getAgingColor(agingDays, invoice.status)}`}>
                           {agingDays}d
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-2 py-2 border border-white/20 bg-black text-center">
                         <button
                           onClick={() => openAccountModal(invoice)}
                           disabled={loadingLead === invoice.id}
-                          className="p-1.5 text-white/40 hover:text-white hover:bg-white/10 rounded transition-colors disabled:opacity-50"
+                          className="p-1 text-white/40 hover:text-white hover:bg-white/10 rounded transition-colors disabled:opacity-50"
                           title="View Account"
                         >
                           {loadingLead === invoice.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
+                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
                           ) : (
-                            <ExternalLink className="w-4 h-4" />
+                            <ExternalLink className="w-3.5 h-3.5" />
                           )}
                         </button>
                       </td>

@@ -50,16 +50,16 @@ function generateInvoiceHTML(formData: any, lineItems: LineItem[], logoSrc: stri
     }
 
     return lineItems.map((item) => {
-      const isPartExchange = item.line_type === 'part_exchange';
-      const displayTotal = isPartExchange ? -Math.abs(item.line_total) : item.line_total;
-      const totalColor = isPartExchange ? '#90EE90' : 'white';
-      const prefix = isPartExchange ? '- ' : '';
+      const isDeduction = item.line_type === 'part_exchange' || item.line_type === 'discount';
+      const displayTotal = isDeduction ? -Math.abs(item.line_total) : item.line_total;
+      const totalColor = isDeduction ? '#90EE90' : 'white';
+      const prefix = isDeduction ? '- ' : '';
       
       return `
         <tr>
           <td class="data" style="width: 50%;">${safeString(item.description)}</td>
           <td class="data" style="width: 10%; text-align: center;">${item.quantity}</td>
-          <td class="data" style="width: 20%; text-align: right;">${formatCurrency(item.unit_price)}</td>
+          <td class="data" style="width: 20%; text-align: right;">${isDeduction ? '-' : formatCurrency(item.unit_price)}</td>
           <td class="data" style="width: 20%; text-align: right; color: ${totalColor};">${prefix}${formatCurrency(Math.abs(displayTotal))}</td>
         </tr>
       `;
@@ -68,14 +68,18 @@ function generateInvoiceHTML(formData: any, lineItems: LineItem[], logoSrc: stri
 
   // Calculate totals
   const subtotal = lineItems
-    .filter(item => item.line_type !== 'part_exchange')
+    .filter(item => item.line_type !== 'part_exchange' && item.line_type !== 'discount')
     .reduce((sum, item) => sum + (Number(item.line_total) || 0), 0);
+  
+  const discountValue = lineItems
+    .filter(item => item.line_type === 'discount')
+    .reduce((sum, item) => sum + Math.abs(Number(item.line_total) || 0), 0);
   
   const partExchangeValue = lineItems
     .filter(item => item.line_type === 'part_exchange')
     .reduce((sum, item) => sum + Math.abs(Number(item.line_total) || 0), 0);
   
-  const totalAmount = subtotal - partExchangeValue;
+  const totalAmount = subtotal - discountValue - partExchangeValue;
 
   return `
     <!DOCTYPE html>
@@ -601,6 +605,12 @@ function generateInvoiceHTML(formData: any, lineItems: LineItem[], logoSrc: stri
                 <td class="label-cell">Subtotal:</td>
                 <td class="value-cell">${formatCurrency(subtotal)}</td>
               </tr>
+              ${discountValue > 0 ? `
+              <tr>
+                <td class="label-cell">Discount:</td>
+                <td class="value-cell" style="color: #90EE90;">- ${formatCurrency(discountValue)}</td>
+              </tr>
+              ` : ''}
               ${partExchangeValue > 0 ? `
               <tr>
                 <td class="label-cell">Part Exchange Credit:</td>
@@ -612,10 +622,18 @@ function generateInvoiceHTML(formData: any, lineItems: LineItem[], logoSrc: stri
                 <td class="value-cell" style="font-size: 14px;">${formatCurrency(totalAmount)}</td>
               </tr>
               ${formData.status === 'paid' ? `
+              ${formData.paidAmount > 0 ? `
               <tr>
                 <td class="label-cell">Amount Paid:</td>
                 <td class="value-cell" style="color: #90EE90;">${formatCurrency(formData.paidAmount)}</td>
               </tr>
+              ` : ''}
+              ${formData.creditNoteTotal > 0 ? `
+              <tr>
+                <td class="label-cell">Credits Applied:</td>
+                <td class="value-cell" style="color: #90EE90;">${formatCurrency(formData.creditNoteTotal)}</td>
+              </tr>
+              ` : ''}
               <tr>
                 <td class="label-cell" style="font-weight: bold;">BALANCE DUE:</td>
                 <td class="value-cell" style="font-size: 14px; font-weight: bold; color: #90EE90;">AED 0.00</td>
@@ -886,8 +904,10 @@ export async function POST(request: NextRequest) {
       manufacturerServiceKm: salesOrder.manufacturer_service_km,
       totalAmount: invoice.total_amount,
       paidAmount: invoice.paid_amount,
+      creditNoteTotal: invoice.credit_note_total || 0,
       balanceDue: invoice.balance_due,
-      status: invoice.status,
+      // Effective paid status: if balance_due <= 0 (accounts for credits) or status is 'paid'
+      status: (invoice.balance_due <= 0 || invoice.status === 'paid') ? 'paid' : invoice.status,
       notes: salesOrder.notes
     };
 

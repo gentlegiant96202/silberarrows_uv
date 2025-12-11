@@ -304,6 +304,7 @@ export default function SalesOrderModal({
   const { isAdmin } = useIsAdminSimple();
   const { canCreate, canEdit, canDelete } = useModulePermissions('uv_crm');
   const { canDelete: accountsCanDelete } = useModulePermissions('accounts');
+  
   const [activeTab, setActiveTab] = useState<TabKey>('sales_order');
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -590,6 +591,9 @@ export default function SalesOrderModal({
     if (!user) return '';
     return user.user_metadata?.full_name || user.email?.split('@')[0] || '';
   };
+
+  // Form is read-only if user lacks edit permission (existing SO) or create permission (new SO)
+  const isFormReadOnly = existingSalesOrder ? !canEdit : !canCreate;
 
   // Load inventory car data
   useEffect(() => {
@@ -2107,8 +2111,8 @@ export default function SalesOrderModal({
             <>
               {activeTab === 'sales_order' && (
                 <div className="space-y-4">
-                  {/* Form content - disabled when locked */}
-                  <fieldset disabled={isLocked} className={`space-y-6 ${isLocked ? 'opacity-60' : ''}`} style={{ border: 'none', padding: 0, margin: 0 }}>
+                  {/* Form content - disabled when locked OR user lacks permission */}
+                  <fieldset disabled={isLocked || isFormReadOnly} className={`space-y-6 ${isLocked || isFormReadOnly ? 'opacity-60' : ''}`} style={{ border: 'none', padding: 0, margin: 0 }}>
                   {/* Customer Details */}
                   <Section title="Customer Details">
                     <div className="grid grid-cols-2 gap-4">

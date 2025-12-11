@@ -678,10 +678,10 @@ I confirm that the above vehicle details, pricing, and terms are correct and agr
 <strong>8. VEHICLE CONDITION AND INSPECTION</strong>
 • The buyer is responsible for inspecting the vehicle prior to purchase.
 • Any defects or issues should be reported to SilberArrows before the completion of the sale.
+
+<strong>Acknowledgement</strong>
               </div>
               <div class="terms-col">
-<strong>Acknowledgement</strong>
-
 <strong>9. RETURNS AND REFUNDS</strong>
 • Returns are only accepted if agreed in writing by SilberArrows.
 • Refunds will be processed in accordance with the terms specified in this reservation form and applicable law. For the avoidance of doubt, deposits are non-refundable except as stated in Section 4.

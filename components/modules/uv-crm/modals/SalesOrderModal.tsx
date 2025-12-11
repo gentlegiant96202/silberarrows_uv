@@ -3215,7 +3215,9 @@ export default function SalesOrderModal({
                     <div className="space-y-2">
                       {invoices.map((invoice) => {
                         const isExpanded = expandedInvoiceId === invoice.id;
-                        const isPaid = invoice.status === 'paid';
+                        // Check if fully paid - account for credits reducing the balance
+                        const effectiveBalance = (invoice.total_amount || 0) - (invoice.credit_note_total || 0) - (invoice.paid_amount || 0);
+                        const isPaid = invoice.status === 'paid' || effectiveBalance <= 0;
                         const isReversed = invoice.status === 'reversed';
                         
                         return (

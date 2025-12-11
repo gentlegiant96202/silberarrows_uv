@@ -222,18 +222,22 @@ export function useUVAccountingStatus(leadIds: string[]) {
       return { color: 'bg-blue-500/30', label: 'Draft', icon: 'draft' };
     }
     
-    switch (status.invoiceStatus) {
-      case 'paid':
-        return { color: 'bg-green-500/30', label: 'Paid', icon: 'paid' };
-      case 'partial':
-        return { color: 'bg-yellow-500/30', label: 'Partial', icon: 'partial' };
-      case 'pending':
-        return { color: 'bg-orange-500/30', label: 'Pending', icon: 'pending' };
-      case 'reversed':
-        return { color: 'bg-red-500/30', label: 'Reversed', icon: 'reversed' };
-      default:
-        return { color: 'bg-white/20', label: 'Unknown', icon: 'none' };
+    // Check if fully paid - balance_due <= 0 means paid (including when credits cover remaining)
+    const isFullyPaid = status.invoiceStatus === 'paid' || status.balanceDue <= 0;
+    
+    if (status.invoiceStatus === 'reversed') {
+      return { color: 'bg-red-500/30', label: 'Reversed', icon: 'reversed' };
     }
+    
+    if (isFullyPaid) {
+      return { color: 'bg-green-500/30', label: 'Paid', icon: 'paid' };
+    }
+    
+    if (status.invoiceStatus === 'partial' || status.paidAmount > 0) {
+      return { color: 'bg-yellow-500/30', label: 'Partial', icon: 'partial' };
+    }
+    
+    return { color: 'bg-orange-500/30', label: 'Pending', icon: 'pending' };
   }, [statusMap]);
 
   return {

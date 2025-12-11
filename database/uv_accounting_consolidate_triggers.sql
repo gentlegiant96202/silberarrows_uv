@@ -129,109 +129,21 @@ CREATE TRIGGER trg_handle_adjustment
     EXECUTE FUNCTION handle_adjustment_created();
 
 -- =====================================================
--- PART 3: ENFORCE REFUND-PAYMENT LINKING
+-- PART 3: REFUND-PAYMENT LINKING (ALREADY EXISTS)
 -- =====================================================
-
--- Create a function to validate refunds have allocations
--- This runs AFTER the refund is created to check allocations exist
-CREATE OR REPLACE FUNCTION validate_refund_has_allocation()
-RETURNS TRIGGER AS $$
-DECLARE
-    v_allocation_count INTEGER;
-BEGIN
-    -- Only check refunds
-    IF NEW.adjustment_type != 'refund' THEN
-        RETURN NEW;
-    END IF;
-    
-    -- Check if refund has at least one allocation
-    -- Note: This is a deferred check - allocation is created after refund
-    -- So we use a constraint trigger instead
-    
-    RETURN NEW;
-END;
-$$ LANGUAGE plpgsql;
-
--- Better approach: Add a NOT NULL constraint on refund allocations
--- But allow existing data to remain
-
--- Create a function that's called when refund allocation is created
--- to update the payment's refunded_amount
-CREATE OR REPLACE FUNCTION update_payment_refunded_amount()
-RETURNS TRIGGER AS $$
-BEGIN
-    IF TG_OP = 'INSERT' THEN
-        UPDATE uv_payments
-        SET refunded_amount = COALESCE(refunded_amount, 0) + NEW.amount,
-            updated_at = NOW()
-        WHERE id = NEW.payment_id;
-    ELSIF TG_OP = 'DELETE' THEN
-        UPDATE uv_payments
-        SET refunded_amount = COALESCE(refunded_amount, 0) - OLD.amount,
-            updated_at = NOW()
-        WHERE id = OLD.payment_id;
-    END IF;
-    
-    RETURN COALESCE(NEW, OLD);
-END;
-$$ LANGUAGE plpgsql;
-
--- Create trigger for refund allocations
-DROP TRIGGER IF EXISTS trg_update_payment_refunded ON uv_refund_allocations;
-CREATE TRIGGER trg_update_payment_refunded
-    AFTER INSERT OR DELETE ON uv_refund_allocations
-    FOR EACH ROW
-    EXECUTE FUNCTION update_payment_refunded_amount();
+-- The refund-payment linking system is already properly implemented:
+--   - uv_refund_allocations table stores refund → payment links
+--   - uv_payment_summary view calculates totals dynamically
+--   - allocate_refund_to_payment() function handles validation
+-- No additional triggers or columns needed!
 
 -- =====================================================
--- PART 4: ADD refunded_amount COLUMN TO PAYMENTS
+-- PART 4: VERIFY (No additional changes needed)
 -- =====================================================
-
--- Add column if not exists
-ALTER TABLE uv_payments 
-ADD COLUMN IF NOT EXISTS refunded_amount NUMERIC(12,2) DEFAULT 0;
-
--- Backfill existing refund allocations
-UPDATE uv_payments p
-SET refunded_amount = COALESCE((
-    SELECT SUM(ra.amount)
-    FROM uv_refund_allocations ra
-    WHERE ra.payment_id = p.id
-), 0);
-
--- Add comment
-COMMENT ON COLUMN uv_payments.refunded_amount IS 'Total amount refunded from this payment (sum of refund_allocations)';
-
--- =====================================================
--- PART 5: CREATE HELPER VIEW FOR PAYMENT STATUS
--- =====================================================
-
-DROP VIEW IF EXISTS uv_payment_status;
-CREATE VIEW uv_payment_status AS
-SELECT 
-    p.id,
-    p.payment_number,
-    p.lead_id,
-    p.amount AS total_amount,
-    COALESCE(alloc.allocated_amount, 0) AS allocated_amount,
-    COALESCE(p.refunded_amount, 0) AS refunded_amount,
-    p.amount - COALESCE(alloc.allocated_amount, 0) - COALESCE(p.refunded_amount, 0) AS available_amount,
-    CASE 
-        WHEN p.amount - COALESCE(alloc.allocated_amount, 0) - COALESCE(p.refunded_amount, 0) <= 0 THEN 'fully_used'
-        WHEN COALESCE(alloc.allocated_amount, 0) + COALESCE(p.refunded_amount, 0) > 0 THEN 'partially_used'
-        ELSE 'available'
-    END AS status
-FROM uv_payments p
-LEFT JOIN (
-    SELECT payment_id, SUM(amount) AS allocated_amount
-    FROM uv_payment_allocations
-    GROUP BY payment_id
-) alloc ON alloc.payment_id = p.id
-WHERE p.status = 'received';
-
--- =====================================================
--- PART 6: VERIFY
--- =====================================================
+-- NOTE: The refund-payment linking system already exists:
+--   - uv_refund_allocations table links refunds to payments
+--   - uv_payment_summary view calculates allocated, refunded, available amounts
+-- No redundant columns or views needed!
 
 SELECT 'Trigger consolidation complete!' AS status;
 

@@ -914,7 +914,9 @@ export default function SalesOrderModal({
             ...prev,
             customerName: lead.full_name || '',
             customerPhone: `${lead.country_code || '+971'}${lead.phone_number || ''}`,
-            vehicleMakeModel: `MERCEDES-BENZ ${(data.vehicle_model || '').toUpperCase()}`,
+            vehicleMakeModel: (data.vehicle_model || '').toUpperCase().startsWith('MERCEDES') 
+              ? (data.vehicle_model || '').toUpperCase() 
+              : `MERCEDES-BENZ ${(data.vehicle_model || '').toUpperCase()}`,
             modelYear: data.model_year || 0,
             chassisNo: data.chassis_number || '',
             vehicleColour: (data.colour || '').toUpperCase(),
@@ -932,7 +934,9 @@ export default function SalesOrderModal({
             setLineItems([{
               id: generateId(),
               line_type: 'vehicle',
-              description: `MERCEDES-BENZ ${(data.vehicle_model || '').toUpperCase()} ${data.model_year || ''}`,
+              description: (data.vehicle_model || '').toUpperCase().startsWith('MERCEDES') 
+                ? `${(data.vehicle_model || '').toUpperCase()} ${data.model_year || ''}`
+                : `MERCEDES-BENZ ${(data.vehicle_model || '').toUpperCase()} ${data.model_year || ''}`,
               quantity: 1,
               unit_price: data.advertised_price_aed || 0,
               line_total: data.advertised_price_aed || 0,

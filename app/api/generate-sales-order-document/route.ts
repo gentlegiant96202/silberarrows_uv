@@ -678,8 +678,6 @@ I confirm that the above vehicle details, pricing, and terms are correct and agr
 <strong>8. VEHICLE CONDITION AND INSPECTION</strong>
 • The buyer is responsible for inspecting the vehicle prior to purchase.
 • Any defects or issues should be reported to SilberArrows before the completion of the sale.
-
-<strong>Acknowledgement</strong>
               </div>
               <div class="terms-col">
 <strong>9. RETURNS AND REFUNDS</strong>
@@ -718,19 +716,20 @@ I confirm that the above vehicle details, pricing, and terms are correct and agr
           <!-- SIGNATURE SECTION -->
           <div class="section">
             <div class="text-content" style="margin-bottom: 8px; text-align: left;">
+              <strong>Acknowledgement</strong><br><br>
               I acknowledge that I have read, understood, and agree to the terms and conditions set out in this reservation form.
             </div>
             <div class="signature-section" style="margin-top: 6px;">
               <div class="signature-box">
                 <div>SilberArrows Signature:</div>
                 <div class="signature-area" style="height: 60px;">
-                  <div class="signature-date">Date: ${formatDate(formData.orderDate)}</div>
+                  <div class="signature-date">${formatDate(formData.orderDate)}</div>
                 </div>
               </div>
               <div class="signature-box">
                 <div>Customer Signature:</div>
                 <div class="signature-area" style="height: 60px;">
-                  <div class="signature-date">Date: ${formatDate(formData.orderDate)}</div>
+                  <div class="signature-date">${formatDate(formData.orderDate)}</div>
                 </div>
               </div>
             </div>

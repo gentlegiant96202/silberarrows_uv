@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { supabase } from '@/lib/supabaseClient';
 import { useAuth } from '@/components/shared/AuthProvider';
+import { useIsAdminSimple } from '@/lib/useIsAdminSimple';
 import { X, FileText, ArrowRightLeft, CreditCard, ClipboardList, ChevronDown, ChevronUp, Save, Loader2, Plus, Trash2, ScrollText, ExternalLink } from 'lucide-react';
 
 // ===== INTERFACES =====
@@ -299,6 +300,7 @@ export default function SalesOrderModal({
   initialAccountingStatus
 }: SalesOrderModalProps) {
   const { user } = useAuth();
+  const { isAdmin } = useIsAdminSimple();
   const [activeTab, setActiveTab] = useState<TabKey>('sales_order');
   const [loading, setLoading] = useState(false);
   const [initialLoading, setInitialLoading] = useState(true);
@@ -2548,14 +2550,15 @@ export default function SalesOrderModal({
 
               {activeTab === 'invoices' && (
                 <div className="space-y-4">
-                  {/* Header with Convert button */}
+                  {/* Header with Convert button - Admin Only */}
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-semibold text-white/80 uppercase tracking-wider">Invoices</h3>
-                    {existingSalesOrder && !isLocked && (
+                    {existingSalesOrder && !isLocked && isAdmin && (
                       <button
                         onClick={handleConvertToInvoice}
                         disabled={convertingToInvoice || lineItems.length === 0}
                         className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-black bg-gradient-to-r from-gray-200 via-white to-gray-200 hover:from-gray-100 hover:via-gray-50 hover:to-gray-100 rounded-lg transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="Admin Only: Convert Sales Order to Invoice"
                       >
                         {convertingToInvoice ? (
                           <>

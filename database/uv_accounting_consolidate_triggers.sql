@@ -210,16 +210,22 @@ CREATE OR REPLACE VIEW uv_payment_status AS
 SELECT 
     p.id,
     p.payment_number,
+    p.lead_id,
     p.amount AS total_amount,
-    COALESCE(p.allocated_amount, 0) AS allocated_amount,
+    COALESCE(alloc.allocated_amount, 0) AS allocated_amount,
     COALESCE(p.refunded_amount, 0) AS refunded_amount,
-    p.amount - COALESCE(p.allocated_amount, 0) - COALESCE(p.refunded_amount, 0) AS available_amount,
+    p.amount - COALESCE(alloc.allocated_amount, 0) - COALESCE(p.refunded_amount, 0) AS available_amount,
     CASE 
-        WHEN p.amount - COALESCE(p.allocated_amount, 0) - COALESCE(p.refunded_amount, 0) <= 0 THEN 'fully_used'
-        WHEN COALESCE(p.allocated_amount, 0) + COALESCE(p.refunded_amount, 0) > 0 THEN 'partially_used'
+        WHEN p.amount - COALESCE(alloc.allocated_amount, 0) - COALESCE(p.refunded_amount, 0) <= 0 THEN 'fully_used'
+        WHEN COALESCE(alloc.allocated_amount, 0) + COALESCE(p.refunded_amount, 0) > 0 THEN 'partially_used'
         ELSE 'available'
     END AS status
 FROM uv_payments p
+LEFT JOIN (
+    SELECT payment_id, SUM(amount) AS allocated_amount
+    FROM uv_payment_allocations
+    GROUP BY payment_id
+) alloc ON alloc.payment_id = p.id
 WHERE p.status = 'received';
 
 -- =====================================================

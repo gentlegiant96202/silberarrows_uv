@@ -1,17 +1,7 @@
 -- =====================================================
--- DEBIT NOTES IMPLEMENTATION - STEP 1: ADD ENUM VALUE
+-- DEBIT NOTES IMPLEMENTATION - STEP 2
 -- 
--- ⚠️  RUN THIS FIRST, THEN RUN STEP 2 SEPARATELY
--- PostgreSQL requires enum values to be committed before use
--- =====================================================
-
--- 1. Add 'debit_note' to adjustment_type enum
--- Run this FIRST and let it commit
-ALTER TYPE uv_adjustment_type ADD VALUE IF NOT EXISTS 'debit_note';
-
--- =====================================================
--- STOP HERE! 
--- After running the above, run the rest in a new query
+-- ⚠️  RUN THIS AFTER uv_debit_notes.sql (Step 1) HAS BEEN COMMITTED
 -- =====================================================
 
 -- 2. Add debit_note_total column to invoices

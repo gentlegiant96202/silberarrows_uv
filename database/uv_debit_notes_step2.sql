@@ -221,6 +221,9 @@ ORDER BY lead_id, transaction_date, reference;
 -- 12. UPDATE GET_CUSTOMER_BALANCE FUNCTION
 -- =====================================================
 
+-- Drop existing function first (return type changed)
+DROP FUNCTION IF EXISTS get_customer_balance(UUID);
+
 CREATE OR REPLACE FUNCTION get_customer_balance(p_lead_id UUID)
 RETURNS TABLE (
     total_invoiced NUMERIC,
@@ -260,9 +263,9 @@ ALTER TABLE uv_ledger_entries ADD CONSTRAINT uv_ledger_entries_entry_type_check
 CREATE OR REPLACE FUNCTION create_ledger_entry_for_debit_note()
 RETURNS TRIGGER AS $$
 DECLARE
-    v_lead_id UUID;
     v_customer_name TEXT;
-    v_customer_cin TEXT;
+    v_customer_number TEXT;
+    v_customer_phone TEXT;
 BEGIN
     -- Only process debit notes
     IF NEW.adjustment_type != 'debit_note' THEN
@@ -270,38 +273,42 @@ BEGIN
     END IF;
 
     -- Get customer info from lead
-    SELECT l.id, l.full_name, l.customer_number
-    INTO v_lead_id, v_customer_name, v_customer_cin
+    SELECT l.full_name, l.customer_number, l.phone_number
+    INTO v_customer_name, v_customer_number, v_customer_phone
     FROM leads l
     WHERE l.id = NEW.lead_id;
 
     -- Insert ledger entry (DEBIT - increases customer balance)
     INSERT INTO uv_ledger_entries (
-        entry_date,
+        transaction_date,
         entry_type,
-        reference_number,
-        source_id,
-        source_table,
+        document_number,
+        description,
+        debit,
+        credit,
         lead_id,
         customer_name,
-        customer_cin,
-        description,
-        debit_amount,
-        credit_amount,
-        pdf_url
+        customer_number,
+        customer_phone,
+        source_table,
+        source_id,
+        pdf_url,
+        created_by
     ) VALUES (
-        NEW.created_at,
+        NEW.created_at::date,
         'debit_note',
         NEW.adjustment_number,
-        NEW.id,
-        'uv_adjustments',
+        'Debit Note: ' || NEW.reason,
+        NEW.amount,  -- DEBIT (increases balance)
+        0,
         NEW.lead_id,
         v_customer_name,
-        v_customer_cin,
-        'Debit Note: ' || NEW.reason,
-        NEW.amount,  -- DEBIT
-        0,
-        NULL  -- PDF URL will be updated when generated
+        v_customer_number,
+        v_customer_phone,
+        'uv_adjustments',
+        NEW.id,
+        NULL,  -- PDF URL will be updated when generated
+        NEW.created_by
     );
 
     RETURN NEW;

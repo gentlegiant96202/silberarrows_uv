@@ -852,12 +852,14 @@ export default function BankFinanceList() {
             loadSummary();
           }}
           lead={selectedLead}
-          onSave={() => {
+          onSalesOrderCreated={() => {
             loadApplications(true);
             loadSummary();
           }}
-          onLeadUpdate={() => {}}
-          initialTab="bank_finance"
+          onSalesOrderUpdated={() => {
+            loadApplications(true);
+            loadSummary();
+          }}
         />
       )}
     </div>

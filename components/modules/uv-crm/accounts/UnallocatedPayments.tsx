@@ -831,12 +831,14 @@ export default function UnallocatedPayments() {
             loadSummary();
           }}
           lead={selectedLead}
-          onSave={() => {
+          onSalesOrderCreated={() => {
             loadPayments(true);
             loadSummary();
           }}
-          onLeadUpdate={() => {}}
-          initialTab="invoices"
+          onSalesOrderUpdated={() => {
+            loadPayments(true);
+            loadSummary();
+          }}
         />
       )}
     </div>

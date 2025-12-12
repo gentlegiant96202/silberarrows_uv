@@ -2724,7 +2724,7 @@ export default function SalesOrderModal({
                 {lead.full_name}
               </h2>
               <p className="text-sm text-white/60 mt-0.5">
-                {lead.customer_number || 'No Customer ID'} • {lead.phone_number}
+                {lead.customer_number || 'No Customer ID'}
               </p>
               {/* Sales Order Info - Secondary */}
               <div className="flex items-center gap-2 mt-2">

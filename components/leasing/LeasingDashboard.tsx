@@ -418,8 +418,12 @@ const LeasingPerformanceCards: React.FC<{metrics: any[], targets: any[], selecte
           </div>
         </div>
         <div className="flex justify-between mt-1 text-xs">
-          <span className="text-white/70">A CLASS {aClassPct.toFixed(0)}%</span>
-          <span className="text-white/50">OTHERS {othersPct.toFixed(0)}%</span>
+          <span className="text-white/70">
+            A CLASS {aClassPct.toFixed(0)}% · {formatCurrency(performance.aClassSales)}
+          </span>
+          <span className="text-white/50">
+            OTHERS {othersPct.toFixed(0)}% · {formatCurrency(performance.othersSales)}
+          </span>
         </div>
       </div>
 

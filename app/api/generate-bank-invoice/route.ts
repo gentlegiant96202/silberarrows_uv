@@ -3,11 +3,10 @@ import fs from 'fs';
 import path from 'path';
 import { supabaseAdmin as supabase } from '@/lib/supabaseAdmin';
 
-interface BankQuotationData {
+interface BankInvoiceData {
   applicationId: string;
-  quotationNumber: string;
-  quotationDate: string;
-  validUntil: string;
+  invoiceNumber: string;
+  invoiceDate: string;
   // Customer
   customerName: string;
   customerPhone: string;
@@ -19,21 +18,20 @@ interface BankQuotationData {
   chassisNo: string;
   vehicleColour: string;
   vehicleMileage: string;
-  // Pricing (inflated for bank)
+  // Pricing (same as quotation)
   bankQuotationPrice: number;
   bankDownPayment: number;
   bankDownPaymentPct: number;
-  amountDue: number; // What bank will finance
+  amountDue: number;
   // Bank details
   bankName: string;
+  bankReference: string;
 }
 
-// Generate HTML content for Bank Quotation document
-function generateBankQuotationHTML(data: BankQuotationData, logoSrc: string, stampSrc: string, signatureSrc: string) {
-  // Safely handle string values
+// Generate HTML content for Bank Invoice document
+function generateBankInvoiceHTML(data: BankInvoiceData, logoSrc: string, stampSrc: string, signatureSrc: string) {
   const safeString = (value: any) => String(value || '-');
 
-  // Format date to DD MMM YYYY
   const formatDate = (dateString: any) => {
     if (!dateString) return '-';
     try {
@@ -45,13 +43,11 @@ function generateBankQuotationHTML(data: BankQuotationData, logoSrc: string, sta
     }
   };
 
-  // Format currency
   const formatCurrency = (value: any) => {
     const num = Number(value) || 0;
     return new Intl.NumberFormat('en-AE', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(num);
   };
 
-  // Safely handle numeric values
   const safeNumber = (value: any) => {
     const num = Number(value) || 0;
     return num.toLocaleString();
@@ -63,7 +59,7 @@ function generateBankQuotationHTML(data: BankQuotationData, logoSrc: string, sta
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Vehicle Quotation - ${safeString(data.quotationNumber)}</title>
+      <title>Bank Invoice - ${safeString(data.invoiceNumber)}</title>
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
       <style>
         @page { margin: 0; size: A4; }
@@ -133,7 +129,7 @@ function generateBankQuotationHTML(data: BankQuotationData, logoSrc: string, sta
         }
         .meta-item:last-child { border-right: none; }
         .meta-item.highlight {
-          background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+          background: linear-gradient(135deg, #059669 0%, #047857 100%);
           color: white;
         }
 
@@ -369,10 +365,13 @@ function generateBankQuotationHTML(data: BankQuotationData, logoSrc: string, sta
 
         /* Footer */
         .footer {
+          position: absolute;
+          bottom: 20px;
+          left: 28px;
+          right: 28px;
           padding-top: 10px;
           border-top: 1px solid #e5e7eb;
           text-align: center;
-          margin-top: auto;
         }
 
         .footer-company {
@@ -401,8 +400,8 @@ function generateBankQuotationHTML(data: BankQuotationData, logoSrc: string, sta
         <!-- Header -->
         <div class="header">
           <div>
-            <div class="document-type">Official Quotation</div>
-            <div class="document-title">PRE-OWNED VEHICLE QUOTATION</div>
+            <div class="document-type">Official Invoice</div>
+            <div class="document-title">PRE-OWNED VEHICLE INVOICE</div>
           </div>
           <img src="${logoSrc}" alt="SilberArrows" class="logo">
         </div>
@@ -410,16 +409,16 @@ function generateBankQuotationHTML(data: BankQuotationData, logoSrc: string, sta
         <!-- Meta Bar -->
         <div class="meta-bar">
           <div class="meta-item">
-            <div class="meta-label">Quotation No.</div>
-            <div class="meta-value">${safeString(data.quotationNumber)}</div>
+            <div class="meta-label">Invoice No.</div>
+            <div class="meta-value">${safeString(data.invoiceNumber)}</div>
           </div>
           <div class="meta-item">
-            <div class="meta-label">Issue Date</div>
-            <div class="meta-value">${formatDate(data.quotationDate)}</div>
+            <div class="meta-label">Invoice Date</div>
+            <div class="meta-value">${formatDate(data.invoiceDate)}</div>
           </div>
           <div class="meta-item">
-            <div class="meta-label">Valid Until</div>
-            <div class="meta-value">${formatDate(data.validUntil)}</div>
+            <div class="meta-label">Reference</div>
+            <div class="meta-value">${safeString(data.bankReference)}</div>
           </div>
           <div class="meta-item highlight">
             <div class="meta-label">Addressed To</div>
@@ -508,7 +507,7 @@ function generateBankQuotationHTML(data: BankQuotationData, logoSrc: string, sta
           <div class="pricing-row">
             <div>
               <div class="pricing-label">Down Payment</div>
-              <div class="pricing-note">${safeNumber(data.bankDownPaymentPct)}% of vehicle price</div>
+              <div class="pricing-note">${data.bankDownPaymentPct}% of vehicle price</div>
             </div>
             <div class="pricing-value">AED ${formatCurrency(data.bankDownPayment)}</div>
           </div>
@@ -518,9 +517,9 @@ function generateBankQuotationHTML(data: BankQuotationData, logoSrc: string, sta
           </div>
         </div>
 
-        <!-- Validity -->
+        <!-- Reference -->
         <div class="validity-row">
-          <div class="validity-text">This quotation is valid until <strong>${formatDate(data.validUntil)}</strong></div>
+          <div class="validity-text">Bank Reference: <strong>${safeString(data.bankReference)}</strong></div>
         </div>
 
         <!-- Signature & Stamp Overlay - Fixed Bottom Left -->
@@ -556,7 +555,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Application ID is required' }, { status: 400 });
     }
 
-    console.log('[generate-bank-quotation] Fetching application:', applicationId);
+    console.log('[generate-bank-invoice] Fetching application:', applicationId);
 
     // Fetch application with related data
     const { data: application, error: appError } = await supabase
@@ -572,30 +571,30 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (appError || !application) {
-      console.error('[generate-bank-quotation] Error fetching application:', appError);
+      console.error('[generate-bank-invoice] Error fetching application:', appError);
       return NextResponse.json({ error: 'Application not found' }, { status: 404 });
     }
 
-    // Generate quotation number if not exists
-    let quotationNumber = application.bank_quotation_number;
-    if (!quotationNumber) {
+    // Generate invoice number if not exists
+    let invoiceNumber = application.bank_invoice_number;
+    if (!invoiceNumber) {
       const { data: counterData, error: counterError } = await supabase.rpc('get_next_document_number', {
-        p_document_type: 'bank_quotation'
+        p_document_type: 'bank_invoice'
       });
       
       if (counterError) {
-        console.error('[generate-bank-quotation] Error getting document number:', counterError);
-        return NextResponse.json({ error: 'Failed to generate quotation number' }, { status: 500 });
+        console.error('[generate-bank-invoice] Error getting document number:', counterError);
+        // Fallback to timestamp-based number
+        invoiceNumber = `BI-${Date.now()}`;
+      } else {
+        invoiceNumber = counterData;
       }
-      
-      quotationNumber = counterData;
     }
 
-    // Get logo as base64 - use main-logo.png with cloudinary fallback
+    // Get logo as base64
     const logoFileCandidates = [
       path.join(process.cwd(), 'public', 'main-logo.png'),
       path.join(process.cwd(), 'public', 'MAIN LOGO.png'),
-      path.join(process.cwd(), 'renderer', 'public', 'main-logo.png')
     ];
     let logoSrc = 'https://res.cloudinary.com/dw0ciqgwd/image/upload/v1748497977/qgdbuhm5lpnxuggmltts.png';
     for (const candidate of logoFileCandidates) {
@@ -607,7 +606,7 @@ export async function POST(request: NextRequest) {
           break;
         }
       } catch (logoError) {
-        console.warn('[generate-bank-quotation] Logo file not found:', candidate);
+        console.warn('[generate-bank-invoice] Logo file not found:', candidate);
       }
     }
 
@@ -615,7 +614,6 @@ export async function POST(request: NextRequest) {
     const stampFileCandidates = [
       path.join(process.cwd(), 'public', 'unnamed@1x_1-1.png'),
       path.join(process.cwd(), 'public', 'company-stamp.png'),
-      path.join(process.cwd(), 'renderer', 'public', 'company-stamp.png')
     ];
     let stampSrc = '';
     for (const candidate of stampFileCandidates) {
@@ -627,7 +625,7 @@ export async function POST(request: NextRequest) {
           break;
         }
       } catch (stampError) {
-        console.warn('[generate-bank-quotation] Stamp file not found:', candidate);
+        console.warn('[generate-bank-invoice] Stamp file not found:', candidate);
       }
     }
 
@@ -641,28 +639,26 @@ export async function POST(request: NextRequest) {
         signatureSrc = `data:image/png;base64,${b64}`;
       }
     } catch (sigError) {
-      console.warn('[generate-bank-quotation] Signature file not found');
+      console.warn('[generate-bank-invoice] Signature file not found');
     }
 
     // Prepare data for template
     const salesOrder = application.sales_order;
     const lead = salesOrder.lead;
 
-    const quotationDate = application.bank_quotation_date || new Date().toISOString().split('T')[0];
-    const validUntilDate = application.bank_quotation_valid_until || 
-      new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]; // 7 days validity
-
-    // Calculate pricing values
+    // Calculate pricing values based on APPROVED amount
     const bankQuotationPrice = application.bank_quotation_price || application.actual_vehicle_price || salesOrder.total_amount;
-    const bankDownPaymentPct = application.bank_required_down_pct || 20;
-    const bankDownPayment = application.bank_shown_down_payment || Math.round(bankQuotationPrice * (bankDownPaymentPct / 100));
-    const amountDue = application.bank_finance_amount || (bankQuotationPrice - bankDownPayment);
+    const approvedFinanceAmount = application.approved_amount || application.bank_finance_amount || 0;
+    
+    // Down payment = Vehicle Price - Approved Finance Amount
+    const bankDownPayment = bankQuotationPrice - approvedFinanceAmount;
+    const bankDownPaymentPct = bankQuotationPrice > 0 ? Math.round((bankDownPayment / bankQuotationPrice) * 100) : 0;
+    const amountDue = approvedFinanceAmount;
 
-    const quotationData: BankQuotationData = {
+    const invoiceData: BankInvoiceData = {
       applicationId: application.id,
-      quotationNumber,
-      quotationDate,
-      validUntil: validUntilDate,
+      invoiceNumber,
+      invoiceDate: new Date().toISOString().split('T')[0],
       customerName: salesOrder.customer_name || lead.full_name || '',
       customerPhone: salesOrder.customer_phone || `${lead.country_code || ''}${lead.phone_number || ''}`,
       customerEmail: salesOrder.customer_email || lead.email || '',
@@ -677,14 +673,15 @@ export async function POST(request: NextRequest) {
       bankDownPaymentPct,
       amountDue,
       bankName: application.bank_name || 'Bank',
+      bankReference: application.bank_reference || '',
     };
 
     // Generate HTML
-    console.log('[generate-bank-quotation] Generating HTML...');
-    const htmlContent = generateBankQuotationHTML(quotationData, logoSrc, stampSrc, signatureSrc);
+    console.log('[generate-bank-invoice] Generating HTML...');
+    const htmlContent = generateBankInvoiceHTML(invoiceData, logoSrc, stampSrc, signatureSrc);
 
     // Call PDFShift API
-    console.log('[generate-bank-quotation] Calling PDFShift API...');
+    console.log('[generate-bank-invoice] Calling PDFShift API...');
     const pdfShiftResponse = await fetch('https://api.pdfshift.io/v3/convert/pdf', {
       method: 'POST',
       headers: {
@@ -703,16 +700,16 @@ export async function POST(request: NextRequest) {
 
     if (!pdfShiftResponse.ok) {
       const errorText = await pdfShiftResponse.text();
-      console.error('[generate-bank-quotation] PDFShift error:', pdfShiftResponse.status, errorText);
+      console.error('[generate-bank-invoice] PDFShift error:', pdfShiftResponse.status, errorText);
       throw new Error(`PDFShift API Error: ${pdfShiftResponse.status} - ${errorText}`);
     }
 
-    console.log('[generate-bank-quotation] PDF generated successfully');
+    console.log('[generate-bank-invoice] PDF generated successfully');
     const pdfBuffer = await pdfShiftResponse.arrayBuffer();
 
     // Upload to Supabase storage
-    const fileName = `bank-quotation-${applicationId}-${Date.now()}.pdf`;
-    console.log('[generate-bank-quotation] Uploading to storage:', fileName);
+    const fileName = `bank-invoice-${applicationId}-${Date.now()}.pdf`;
+    console.log('[generate-bank-invoice] Uploading to storage:', fileName);
     
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('documents')
@@ -722,7 +719,7 @@ export async function POST(request: NextRequest) {
       });
 
     if (uploadError) {
-      console.error('[generate-bank-quotation] Upload error:', uploadError);
+      console.error('[generate-bank-invoice] Upload error:', uploadError);
       throw new Error(`Storage upload failed: ${uploadError.message}`);
     }
 
@@ -733,39 +730,34 @@ export async function POST(request: NextRequest) {
 
     const pdfUrl = urlData.publicUrl;
 
-    // Update application with PDF URL and quotation details
+    // Update application with PDF URL and invoice number
     const { error: updateError } = await supabase
       .from('uv_bank_finance_applications')
       .update({
-        bank_quotation_number: quotationNumber,
-        bank_quotation_pdf_url: pdfUrl,
-        bank_quotation_date: quotationDate,
-        bank_quotation_valid_until: validUntilDate,
+        bank_invoice_number: invoiceNumber,
+        bank_invoice_pdf_url: pdfUrl,
         updated_at: new Date().toISOString()
       })
       .eq('id', applicationId);
 
     if (updateError) {
-      console.error('[generate-bank-quotation] Error updating application:', updateError);
+      console.error('[generate-bank-invoice] Error updating application:', updateError);
     }
 
-    console.log('[generate-bank-quotation] Complete! URL:', pdfUrl);
+    console.log('[generate-bank-invoice] Complete! URL:', pdfUrl);
 
     return NextResponse.json({
       success: true,
       pdfUrl,
-      quotationNumber,
-      quotationDate,
-      validUntil: validUntilDate
+      invoiceNumber
     });
 
   } catch (error: any) {
-    console.error('[generate-bank-quotation] Error:', error);
+    console.error('[generate-bank-invoice] Error:', error);
     return NextResponse.json(
-      { error: error.message || 'Failed to generate bank quotation' },
+      { error: error.message || 'Failed to generate bank invoice' },
       { status: 500 }
     );
   }
 }
-
 

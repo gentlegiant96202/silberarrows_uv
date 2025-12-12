@@ -214,6 +214,9 @@ interface BankFinanceApplication {
   bank_quotation_pdf_url?: string;
   bank_quotation_date?: string;
   bank_quotation_valid_until?: string;
+  // Bank invoice (generated on approval)
+  bank_invoice_number?: string;
+  bank_invoice_pdf_url?: string;
   // Applied terms
   applied_interest_rate?: number;
   applied_tenure_months?: number;
@@ -2250,19 +2253,42 @@ export default function SalesOrderModal({
           status: 'approved',
           bank_reference: approvalForm.bank_reference,
           approved_amount: approvalForm.approved_amount,
-          approved_down_payment: approvalForm.approved_down_payment,
-          approved_interest_rate: approvalForm.approved_interest_rate,
-          approved_tenure_months: approvalForm.approved_tenure_months,
-          approved_emi: approvalForm.approved_emi,
-          first_emi_date: approvalForm.first_emi_date || null,
-          last_emi_date: approvalForm.last_emi_date || null,
         })
         .eq('id', selectedBfApp.id);
 
       if (error) throw error;
 
+      // Generate Bank Invoice PDF
+      let invoiceUrl = '';
+      let invoiceNumber = '';
+      try {
+        const invoiceResponse = await fetch('/api/generate-bank-invoice', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ applicationId: selectedBfApp.id }),
+        });
+        
+        if (!invoiceResponse.ok) {
+          console.error('Failed to generate bank invoice');
+        } else {
+          const invoiceData = await invoiceResponse.json();
+          console.log('Bank invoice generated:', invoiceData.invoiceNumber);
+          invoiceUrl = invoiceData.pdfUrl || '';
+          invoiceNumber = invoiceData.invoiceNumber || '';
+        }
+      } catch (invoiceError) {
+        console.error('Error generating bank invoice:', invoiceError);
+      }
+
       setShowApprovalModal(false);
-      setSelectedBfApp(prev => prev ? { ...prev, status: 'approved', ...approvalForm } : null);
+      setSelectedBfApp(prev => prev ? { 
+        ...prev, 
+        status: 'approved', 
+        bank_reference: approvalForm.bank_reference,
+        approved_amount: approvalForm.approved_amount,
+        bank_invoice_pdf_url: invoiceUrl,
+        bank_invoice_number: invoiceNumber,
+      } : null);
       await loadBfAppDetails(selectedBfApp.id);
       if (existingSalesOrder) await loadBfApplications(existingSalesOrder.id);
     } catch (error: any) {
@@ -4125,12 +4151,12 @@ export default function SalesOrderModal({
                         )}
                         Download PDF
                       </button>
-                      <button
-                        onClick={() => loadSoaData()}
-                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white/70 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
-                      >
-                        Refresh
-                      </button>
+                    <button
+                      onClick={() => loadSoaData()}
+                      className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white/70 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+                    >
+                      Refresh
+                    </button>
                     </div>
                   </div>
 
@@ -4618,30 +4644,38 @@ export default function SalesOrderModal({
                       {/* Finance Details - Approved Terms (if approved) */}
                       {selectedBfApp.status === 'approved' && (
                         <div className="bg-green-500/5 border border-green-400/20 rounded-xl p-4 space-y-3">
-                          <div className="flex items-center gap-2">
-                            <CheckCircle2 className="w-4 h-4 text-green-400" />
-                            <p className="text-sm font-semibold text-green-400">Approved Finance Terms</p>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <CheckCircle2 className="w-4 h-4 text-green-400" />
+                              <p className="text-sm font-semibold text-green-400">Finance Approved</p>
+                            </div>
+                            {selectedBfApp.bank_invoice_pdf_url && (
+                              <button
+                                onClick={() => {
+                                  const link = document.createElement('a');
+                                  link.href = selectedBfApp.bank_invoice_pdf_url!;
+                                  link.download = `Bank-Invoice-${selectedBfApp.bank_invoice_number || 'download'}.pdf`;
+                                  link.click();
+                                }}
+                                className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-black bg-green-400 hover:bg-green-300 rounded transition-colors"
+                              >
+                                <Download className="w-3 h-3" />
+                                Bank Invoice
+                              </button>
+                            )}
                           </div>
-                          <div className="grid grid-cols-4 gap-4 text-center">
+                          <div className="grid grid-cols-2 gap-4 text-center">
                             <div>
                               <p className="text-xs text-white/50">Approved Amount</p>
-                              <p className="text-sm font-bold text-white">AED {formatCurrency(selectedBfApp.approved_amount || 0)}</p>
+                              <p className="text-lg font-bold text-green-400">AED {formatCurrency(selectedBfApp.approved_amount || 0)}</p>
                             </div>
                             <div>
-                              <p className="text-xs text-white/50">Interest Rate</p>
-                              <p className="text-sm font-bold text-white">{selectedBfApp.approved_interest_rate || 0}%</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-white/50">Tenure</p>
-                              <p className="text-sm font-bold text-white">{selectedBfApp.approved_tenure_months} months</p>
-                            </div>
-                            <div>
-                              <p className="text-xs text-white/50">Monthly EMI</p>
-                              <p className="text-sm font-bold text-white">AED {formatCurrency(selectedBfApp.approved_emi || 0)}</p>
+                              <p className="text-xs text-white/50">Bank Reference</p>
+                              <p className="text-sm font-bold text-white font-mono">{selectedBfApp.bank_reference || '-'}</p>
                             </div>
                           </div>
-                          {selectedBfApp.bank_reference && (
-                            <p className="text-xs text-center text-white/50">Bank Reference: <span className="text-green-400 font-mono">{selectedBfApp.bank_reference}</span></p>
+                          {selectedBfApp.bank_invoice_number && (
+                            <p className="text-xs text-center text-white/50">Invoice: <span className="text-green-400 font-mono">{selectedBfApp.bank_invoice_number}</span></p>
                           )}
                         </div>
                       )}
@@ -4658,7 +4692,7 @@ export default function SalesOrderModal({
                               className="flex items-center gap-1 px-2 py-1 text-xs font-medium text-black bg-white hover:bg-white/90 rounded transition-colors disabled:opacity-50"
                             >
                               {generatingBankQuotation ? <Loader2 className="w-3 h-3 animate-spin" /> : <Download className="w-3 h-3" />}
-                              {generatingBankQuotation ? 'Generating...' : 'Download PDF'}
+                              {generatingBankQuotation ? 'Generating...' : 'Download Quotation'}
                             </button>
                             {/* Quick view last generated PDF if exists */}
                             {selectedBfApp.bank_quotation_pdf_url && (
@@ -4899,7 +4933,7 @@ export default function SalesOrderModal({
                   {/* Approval Modal */}
                   {showApprovalModal && selectedBfApp && (
                     <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80">
-                      <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 w-full max-w-lg space-y-4">
+                      <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 w-full max-w-md space-y-4">
                         <div className="flex items-center justify-between">
                           <h4 className="text-lg font-semibold text-white">✅ Mark as Approved</h4>
                           <button onClick={() => setShowApprovalModal(false)} className="text-white/40 hover:text-white">
@@ -4910,37 +4944,11 @@ export default function SalesOrderModal({
                         <div className="space-y-3">
                           <div>
                             <label className={labelClass}>Bank Reference Number *</label>
-                            <input type="text" className={inputClass} value={approvalForm.bank_reference} onChange={(e) => setApprovalForm(prev => ({ ...prev, bank_reference: e.target.value }))} />
+                            <input type="text" className={inputClass} placeholder="Enter bank reference/approval number" value={approvalForm.bank_reference} onChange={(e) => setApprovalForm(prev => ({ ...prev, bank_reference: e.target.value }))} />
                           </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className={labelClass}>Approved Finance Amount *</label>
-                              <input type="number" className={inputClass} value={approvalForm.approved_amount} onChange={(e) => setApprovalForm(prev => ({ ...prev, approved_amount: parseFloat(e.target.value) || 0 }))} />
-                            </div>
-                            <div>
-                              <label className={labelClass}>Down Payment</label>
-                              <input type="number" className={inputClass} value={approvalForm.approved_down_payment} onChange={(e) => setApprovalForm(prev => ({ ...prev, approved_down_payment: parseFloat(e.target.value) || 0 }))} />
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className={labelClass}>Interest Rate % *</label>
-                              <input type="number" step="0.01" className={inputClass} value={approvalForm.approved_interest_rate} onChange={(e) => setApprovalForm(prev => ({ ...prev, approved_interest_rate: parseFloat(e.target.value) || 0 }))} />
-                            </div>
-                            <div>
-                              <label className={labelClass}>Tenure (Months) *</label>
-                              <input type="number" className={inputClass} value={approvalForm.approved_tenure_months} onChange={(e) => setApprovalForm(prev => ({ ...prev, approved_tenure_months: parseInt(e.target.value) || 0 }))} />
-                            </div>
-                          </div>
-                          <div className="grid grid-cols-2 gap-3">
-                            <div>
-                              <label className={labelClass}>Monthly EMI</label>
-                              <input type="number" className={inputClass} value={approvalForm.approved_emi} onChange={(e) => setApprovalForm(prev => ({ ...prev, approved_emi: parseFloat(e.target.value) || 0 }))} />
-                            </div>
-                            <div>
-                              <label className={labelClass}>First EMI Date</label>
-                              <input type="date" className={inputClass} value={approvalForm.first_emi_date} onChange={(e) => setApprovalForm(prev => ({ ...prev, first_emi_date: e.target.value }))} />
-                            </div>
+                          <div>
+                            <label className={labelClass}>Approved Finance Amount *</label>
+                            <input type="number" className={inputClass} placeholder="Amount approved by bank" value={approvalForm.approved_amount} onChange={(e) => setApprovalForm(prev => ({ ...prev, approved_amount: parseFloat(e.target.value) || 0 }))} />
                           </div>
                         </div>
 

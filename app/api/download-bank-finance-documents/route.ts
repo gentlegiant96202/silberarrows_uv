@@ -72,6 +72,22 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Download and add bank invoice PDF if exists (generated on approval)
+    if (application.bank_invoice_pdf_url) {
+      try {
+        console.log('[download-bank-finance-documents] Fetching bank invoice PDF...');
+        const invoiceResponse = await fetch(application.bank_invoice_pdf_url);
+        if (invoiceResponse.ok) {
+          const invoiceBuffer = await invoiceResponse.arrayBuffer();
+          const invoiceFileName = `Bank_Invoice_${application.bank_invoice_number || appNumber}.pdf`;
+          quotationFolder?.file(invoiceFileName, invoiceBuffer);
+          console.log('[download-bank-finance-documents] Added bank invoice PDF');
+        }
+      } catch (err) {
+        console.warn('[download-bank-finance-documents] Failed to fetch bank invoice PDF:', err);
+      }
+    }
+
     // Download and add all documents
     for (const doc of documents || []) {
       try {

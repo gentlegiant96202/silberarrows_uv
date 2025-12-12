@@ -215,7 +215,16 @@ export default function Sidebar() {
           { key: 'sales_audit_log', label: 'Audit Log', icon: ShieldCheck, href: '/accounts/sales/audit-log' }
         ]
       },
-      { key: 'accounts_leasing', label: 'Leasing', icon: Calculator, href: '/accounts/dashboard?tab=leasing' }
+      {
+        key: 'accounts_leasing',
+        label: 'Leasing',
+        icon: Calculator,
+        subItems: [
+          { key: 'leasing_dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/accounts/dashboard?tab=leasing&subtab=dashboard' },
+          { key: 'leasing_grid', label: 'Data Grid', icon: Grid3X3, href: '/accounts/dashboard?tab=leasing&subtab=grid' },
+          { key: 'leasing_targets', label: 'Targets', icon: Target, href: '/accounts/dashboard?tab=leasing&subtab=targets' }
+        ]
+      }
     ]
   };
 
@@ -286,6 +295,10 @@ export default function Sidebar() {
   const handleNavigation = (item: NavItem) => {
     if (item.subItems) {
       toggleExpanded(item.key);
+      // Also navigate to the first sub-item (Dashboard) when clicking parent
+      if (item.subItems[0]?.href) {
+        router.push(item.subItems[0].href);
+      }
     } else if (item.href) {
       router.push(item.href);
     }

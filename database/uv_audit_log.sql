@@ -137,11 +137,11 @@ BEGIN
             'sales_order_created',
             'sales_order',
             NEW.id,
-            NEW.so_number,
+            NEW.order_number,
             NEW.lead_id,
             NULL,
             jsonb_build_object(
-                'so_number', NEW.so_number,
+                'order_number', NEW.order_number,
                 'status', NEW.status,
                 'total_amount', NEW.total_amount,
                 'payment_method', NEW.payment_method
@@ -156,12 +156,12 @@ BEGIN
                 'sales_order_status_changed',
                 'sales_order',
                 NEW.id,
-                NEW.so_number,
+                NEW.order_number,
                 NEW.lead_id,
                 jsonb_build_object('status', OLD.status),
                 jsonb_build_object('status', NEW.status),
                 NULL,
-                NEW.updated_by
+                NULL
             );
         -- Log other updates
         ELSIF OLD.total_amount IS DISTINCT FROM NEW.total_amount 
@@ -170,7 +170,7 @@ BEGIN
                 'sales_order_updated',
                 'sales_order',
                 NEW.id,
-                NEW.so_number,
+                NEW.order_number,
                 NEW.lead_id,
                 jsonb_build_object(
                     'total_amount', OLD.total_amount,
@@ -181,7 +181,7 @@ BEGIN
                     'customer_name', NEW.customer_name
                 ),
                 NULL,
-                NEW.updated_by
+                NULL
             );
         END IF;
     END IF;
@@ -401,27 +401,29 @@ CREATE OR REPLACE FUNCTION audit_adjustment_changes()
 RETURNS TRIGGER AS $$
 DECLARE
     v_action TEXT;
+    v_type TEXT;
 BEGIN
     IF TG_OP = 'INSERT' THEN
-        -- Determine action based on type
-        v_action := NEW.adjustment_type || '_created';
+        -- Cast enum to text
+        v_type := NEW.adjustment_type::TEXT;
+        v_action := v_type || '_created';
         
         PERFORM log_audit_entry(
             v_action,
-            NEW.adjustment_type,
+            v_type,
             NEW.id,
             NEW.adjustment_number,
             NEW.lead_id,
-            NULL,
+            NULL::JSONB,
             jsonb_build_object(
                 'adjustment_number', NEW.adjustment_number,
-                'adjustment_type', NEW.adjustment_type,
+                'adjustment_type', v_type,
                 'amount', NEW.amount,
                 'reason', NEW.reason,
                 'invoice_id', NEW.invoice_id,
                 'refund_method', NEW.refund_method
             ),
-            NULL,
+            NULL::JSONB,
             NEW.created_by
         );
     END IF;

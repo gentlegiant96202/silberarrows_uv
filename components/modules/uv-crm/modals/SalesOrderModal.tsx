@@ -739,7 +739,7 @@ export default function SalesOrderModal({
     salesExecutive: '',
     
     // Payment Method
-    paymentMethod: 'cash' as 'cash' | 'bank_finance',
+    paymentMethod: 'bank_finance' as 'cash' | 'bank_finance',
   });
 
   // Get user display name
@@ -1103,7 +1103,7 @@ export default function SalesOrderModal({
       notes: '',
       orderDate: new Date().toISOString().split('T')[0],
       salesExecutive: getUserDisplayName(),
-      paymentMethod: 'cash',
+      paymentMethod: 'bank_finance',
     });
     
     // Load inventory car if lead has one

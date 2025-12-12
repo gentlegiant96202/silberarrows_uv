@@ -184,9 +184,12 @@ export default function Sidebar() {
       { key: 'email', label: 'Email Signature', icon: Mail, href: '/marketing/dashboard?tab=email' }
     ],
     'leasing': [
+      { key: 'leasing_dashboard', label: 'Dashboard', icon: LayoutDashboard, href: '/leasing/dashboard' },
       { key: 'crm', label: 'CRM', icon: Users, href: '/leasing?tab=crm' },
       { key: 'inventory', label: 'Inventory', icon: ShoppingBag, href: '/leasing?tab=inventory' },
-      { key: 'calculator', label: 'Calculator', icon: Calculator, href: '/leasing?tab=calculator' }
+      { key: 'calculator', label: 'Calculator', icon: Calculator, href: '/leasing?tab=calculator' },
+      { key: 'leasing_data_grid', label: 'Data Grid', icon: Grid3X3, href: '/accounts/dashboard?tab=leasing&subtab=grid' },
+      { key: 'leasing_targets', label: 'Targets', icon: Target, href: '/accounts/dashboard?tab=leasing&subtab=targets' }
     ],
     'accounts': [
       {

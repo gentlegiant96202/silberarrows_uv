@@ -47,7 +47,8 @@ import {
   Grid3X3,
   Target,
   Wallet,
-  Building2
+  Building2,
+  ShieldCheck
 } from 'lucide-react';
 
 interface NavItem {
@@ -210,7 +211,8 @@ export default function Sidebar() {
           { key: 'sales_invoices', label: 'Invoices', icon: FileText, href: '/accounts/sales/invoices' },
           { key: 'sales_unallocated', label: 'Unallocated Payments', icon: Wallet, href: '/accounts/sales/unallocated-payments' },
           { key: 'sales_bank_finance', label: 'Bank Finance', icon: Building2, href: '/accounts/sales/bank-finance' },
-          { key: 'sales_ledger', label: 'Ledger', icon: BookOpen, href: '/accounts/sales/ledger' }
+          { key: 'sales_ledger', label: 'Ledger', icon: BookOpen, href: '/accounts/sales/ledger' },
+          { key: 'sales_audit_log', label: 'Audit Log', icon: ShieldCheck, href: '/accounts/sales/audit-log' }
         ]
       },
       { key: 'accounts_leasing', label: 'Leasing', icon: Calculator, href: '/accounts/dashboard?tab=leasing' }

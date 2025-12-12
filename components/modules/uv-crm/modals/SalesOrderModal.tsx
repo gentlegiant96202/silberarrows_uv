@@ -496,6 +496,7 @@ export default function SalesOrderModal({
   const [soaData, setSoaData] = useState<any[]>([]);
   const [soaBalance, setSoaBalance] = useState<any>(null);
   const [loadingSoa, setLoadingSoa] = useState(false);
+  const [generatingSoaPdf, setGeneratingSoaPdf] = useState(false);
   
   // Bank Finance state
   const [bfApplications, setBfApplications] = useState<BankFinanceApplication[]>([]);
@@ -1596,6 +1597,48 @@ export default function SalesOrderModal({
       console.error('Error loading SOA:', error);
     } finally {
       setLoadingSoa(false);
+    }
+  };
+
+  // Download SOA as PDF
+  const handleDownloadSoa = async () => {
+    if (!lead.id) return;
+    
+    setGeneratingSoaPdf(true);
+    try {
+      const response = await fetch('/api/generate-soa', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadId: lead.id,
+          customerName: lead.full_name,
+          customerNumber: lead.customer_number,
+          transactions: soaData,
+          balance: soaBalance
+        })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate SOA');
+      }
+      
+      const data = await response.json();
+      if (data.pdfUrl) {
+        // Force download
+        const link = document.createElement('a');
+        link.href = data.pdfUrl;
+        link.download = `SOA_${lead.customer_number || lead.full_name}_${new Date().toISOString().split('T')[0]}.pdf`;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+    } catch (error: any) {
+      console.error('Error generating SOA:', error);
+      alert('Error generating SOA: ' + error.message);
+    } finally {
+      setGeneratingSoaPdf(false);
     }
   };
 
@@ -4060,12 +4103,26 @@ export default function SalesOrderModal({
                   {/* Header */}
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-semibold text-white/80 uppercase tracking-wider">Statement of Account</h3>
-                    <button
-                      onClick={() => loadSoaData()}
-                      className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white/70 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
-                    >
-                      Refresh
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={handleDownloadSoa}
+                        disabled={generatingSoaPdf || soaData.length === 0}
+                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white/70 bg-white/10 hover:bg-white/20 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {generatingSoaPdf ? (
+                          <Loader2 className="w-3 h-3 animate-spin" />
+                        ) : (
+                          <Download className="w-3 h-3" />
+                        )}
+                        Download PDF
+                      </button>
+                      <button
+                        onClick={() => loadSoaData()}
+                        className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium text-white/70 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
+                      >
+                        Refresh
+                      </button>
+                    </div>
                   </div>
 
                   {/* Balance Summary */}

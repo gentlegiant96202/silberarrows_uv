@@ -140,8 +140,8 @@ export default function LeasingDashboardPage() {
 
   return (
     <RouteProtector moduleName="leasing">
-      <div className="min-h-screen bg-black p-4 sm:p-6">
-        <div className="max-w-7xl mx-auto">
+      <div className="min-h-screen bg-black px-3 sm:px-4 py-4">
+        <div className="w-full">
           <LeasingFilterInline
             leasingYear={leasingYear}
             leasingMonth={leasingMonth}

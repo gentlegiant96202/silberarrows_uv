@@ -2,6 +2,7 @@
 import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/components/shared/AuthProvider";
+import { supabase } from "@/lib/supabaseClient";
 import Link from 'next/link';
 import AuthLogo from '@/components/shared/AuthLogo';
 import Image from 'next/image';
@@ -19,7 +20,6 @@ function LoginContent() {
   const [isEmailFocused, setIsEmailFocused] = useState(false);
   const [isPasswordFocused, setIsPasswordFocused] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-
   // Check for email confirmation success
   useEffect(() => {
     const confirmed = searchParams.get('confirmed');
@@ -42,14 +42,17 @@ function LoginContent() {
     }
   }, [user, router, searchParams]);
 
-  // While we are redirecting (or waiting for the auth state), render nothing
-  if (user || loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-black">
-        <PulsatingLogo size={64} />
-      </div>
-    );
-  }
+  // On the login page, if a stale session exists, clear it to avoid infinite loading
+  useEffect(() => {
+    const checkSession = async () => {
+      if (!user) return;
+      const { data, error } = await supabase.auth.getUser();
+      if (error || !data?.user) {
+        await supabase.auth.signOut();
+      }
+    };
+    checkSession();
+  }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

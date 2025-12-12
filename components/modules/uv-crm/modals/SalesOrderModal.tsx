@@ -413,7 +413,10 @@ export default function SalesOrderModal({
   const { user } = useAuth();
   const { isAdmin } = useIsAdminSimple();
   const { canCreate, canEdit, canDelete } = useModulePermissions('uv_crm');
-  const { canDelete: accountsCanDelete } = useModulePermissions('accounts');
+  const { canCreate: accountsCanCreate, canDelete: accountsCanDelete } = useModulePermissions('accounts');
+  
+  // Only admin or accounts team can manage adjustments (credit notes, debit notes, refunds)
+  const canManageAdjustments = isAdmin || accountsCanCreate;
   
   const [activeTab, setActiveTab] = useState<TabKey>('sales_order');
   const [loading, setLoading] = useState(false);
@@ -3801,7 +3804,8 @@ export default function SalesOrderModal({
                         )}
                       </div>
 
-                      {/* CREDIT NOTES SECTION */}
+                      {/* CREDIT NOTES SECTION - Admin and Accounts only */}
+                      {canManageAdjustments && (
                       <div className="border border-white/15 rounded-lg overflow-hidden bg-white/5">
                         <button
                           onClick={() => toggleSection('credits')}
@@ -3817,8 +3821,8 @@ export default function SalesOrderModal({
                         
                         {expandedSections.credits && (
                           <div className="p-3 space-y-2 border-t border-white/10">
-                            {/* Add Credit Note Button - Requires canCreate */}
-                            {!showCreditNoteForm && canCreate && (
+                            {/* Add Credit Note Button - Requires canManageAdjustments */}
+                            {!showCreditNoteForm && (
                               <button
                                 onClick={() => setShowCreditNoteForm(invoices.find(i => i.status !== 'reversed' && i.balance_due > 0)?.id || 'select')}
                                 disabled={!invoices.some(i => i.status !== 'reversed' && i.balance_due > 0)}
@@ -3888,8 +3892,10 @@ export default function SalesOrderModal({
                           </div>
                         )}
                       </div>
+                      )}
 
-                      {/* DEBIT NOTES SECTION */}
+                      {/* DEBIT NOTES SECTION - Admin and Accounts only */}
+                      {canManageAdjustments && (
                       <div className="border border-white/15 rounded-lg overflow-hidden bg-white/5">
                         <button
                           onClick={() => toggleSection('debits')}
@@ -3905,8 +3911,8 @@ export default function SalesOrderModal({
                         
                         {expandedSections.debits && (
                           <div className="p-3 space-y-2 border-t border-white/10">
-                            {/* Add Debit Note Button - Requires canCreate */}
-                            {!showDebitNoteForm && canCreate && (
+                            {/* Add Debit Note Button - Requires canManageAdjustments */}
+                            {!showDebitNoteForm && (
                               <button
                                 onClick={() => setShowDebitNoteForm(invoices.find(i => i.status !== 'reversed')?.id || 'select')}
                                 disabled={!invoices.some(i => i.status !== 'reversed')}
@@ -3976,8 +3982,10 @@ export default function SalesOrderModal({
                           </div>
                         )}
                       </div>
+                      )}
 
-                      {/* REFUNDS SECTION */}
+                      {/* REFUNDS SECTION - Admin and Accounts only */}
+                      {canManageAdjustments && (
                       <div className="border border-white/15 rounded-lg overflow-hidden bg-white/5">
                         <button
                           onClick={() => toggleSection('refunds')}
@@ -3993,8 +4001,8 @@ export default function SalesOrderModal({
                         
                         {expandedSections.refunds && (
                           <div className="p-3 space-y-2 border-t border-white/10">
-                            {/* Add Refund Button - Requires canCreate */}
-                            {!showRefundForm && canCreate && (
+                            {/* Add Refund Button - Requires canManageAdjustments */}
+                            {!showRefundForm && (
                               <button
                                 onClick={() => setShowRefundForm(true)}
                                 disabled={!payments.some(p => (p.available_amount || 0) > 0)}
@@ -4093,6 +4101,7 @@ export default function SalesOrderModal({
                           </div>
                         )}
                       </div>
+                      )}
                     </>
                   )}
                 </div>

@@ -356,17 +356,17 @@ export async function POST(req: NextRequest) {
     }
 
     // Read logo and convert to base64
-    const logoPath = path.join(process.cwd(), 'public', 'silberarrows-logo-white.svg');
+    const logoPath = path.join(process.cwd(), 'public', 'MAIN LOGO.png');
     let logoSrc = '';
     try {
       const logoBuffer = fs.readFileSync(logoPath);
-      logoSrc = `data:image/svg+xml;base64,${logoBuffer.toString('base64')}`;
+      logoSrc = `data:image/png;base64,${logoBuffer.toString('base64')}`;
     } catch (e) {
-      // Fallback to PNG if SVG not found
+      // Fallback to SVG if PNG not found
       try {
-        const pngPath = path.join(process.cwd(), 'public', 'silberarrows-logo.png');
-        const pngBuffer = fs.readFileSync(pngPath);
-        logoSrc = `data:image/png;base64,${pngBuffer.toString('base64')}`;
+        const svgPath = path.join(process.cwd(), 'public', 'ARROWS LOGO1.svg');
+        const svgBuffer = fs.readFileSync(svgPath);
+        logoSrc = `data:image/svg+xml;base64,${svgBuffer.toString('base64')}`;
       } catch (e2) {
         console.error('Logo not found, using placeholder');
         logoSrc = '';

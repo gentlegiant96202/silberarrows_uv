@@ -5,6 +5,8 @@
 
 -- Add all missing contract fields (safe to run multiple times)
 ALTER TABLE leasing_customers
+ADD COLUMN IF NOT EXISTS monthly_mileage INTEGER,
+ADD COLUMN IF NOT EXISTS excess_mileage_charges DECIMAL(10,2),
 ADD COLUMN IF NOT EXISTS buyout_price DECIMAL(10,2);
 
 -- Add comments for clarity
@@ -12,6 +14,8 @@ COMMENT ON COLUMN leasing_customers.selected_vehicle_id IS 'References leasing_i
 COMMENT ON COLUMN leasing_customers.monthly_payment IS 'Monthly lease payment amount - Required for contracts';
 COMMENT ON COLUMN leasing_customers.security_deposit IS 'Security deposit amount - Required for contracts';
 COMMENT ON COLUMN leasing_customers.lease_term_months IS 'Lease duration in months - Required for contracts';
+COMMENT ON COLUMN leasing_customers.monthly_mileage IS 'Monthly mileage allowance (KM) for this specific lease contract - Required for contracts';
+COMMENT ON COLUMN leasing_customers.excess_mileage_charges IS 'Excess mileage charge (AED per km) for this specific lease contract';
 COMMENT ON COLUMN leasing_customers.lease_start_date IS 'Contract start date - Required for contracts';
 COMMENT ON COLUMN leasing_customers.lease_end_date IS 'Contract end date - Required for contracts';
 COMMENT ON COLUMN leasing_customers.lease_to_own_option IS 'Lease-to-own option - Required for contracts';

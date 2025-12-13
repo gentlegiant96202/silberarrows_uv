@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { X, User, MapPin, FileText, Car, Upload, Calendar, DollarSign } from "lucide-react";
 
@@ -34,10 +34,10 @@ interface InventoryVehicle {
 
 export default function LeasingContractModal({ isOpen, onClose, onCreated, mode = 'create', existingCustomer }: Props) {
   // Standardized field styling classes
-  const fieldClass = "w-full px-4 py-4 rounded-lg bg-black/20 border border-white/10 text-white text-lg focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield] [&:autofill]:bg-black/20 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-70";
-  const labelClass = "block text-white/80 text-lg font-semibold mb-3";
-  const compactLabelClass = "block text-white/80 text-base font-medium mb-2";
-  const compactFieldClass = "w-full px-3 py-3 rounded-lg bg-black/20 border border-white/10 text-white text-base focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield] [&:autofill]:bg-black/20";
+  const fieldClass = "w-full px-3 py-2.5 rounded-lg bg-neutral-800/60 border border-white/15 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield] [&:autofill]:bg-neutral-800/60 [&::-webkit-calendar-picker-indicator]:filter [&::-webkit-calendar-picker-indicator]:invert [&::-webkit-calendar-picker-indicator]:opacity-70";
+  const labelClass = "block text-white/70 text-xs font-medium mb-1.5";
+  const compactLabelClass = "block text-white/70 text-xs font-medium mb-1.5";
+  const compactFieldClass = "w-full px-3 py-3 rounded-lg bg-neutral-800/60 border border-white/15 text-white text-sm focus:outline-none focus:ring-2 focus:ring-white/30 focus:border-white/30 transition-all appearance-none [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none [-moz-appearance:textfield] [&:autofill]:bg-neutral-800/60";
 
   // Tab state
   const [activeTab, setActiveTab] = useState<string>('personal');
@@ -70,6 +70,7 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
     selected_vehicle_id: existingCustomer?.selected_vehicle_id || "",
     monthly_payment: existingCustomer?.monthly_payment?.toString() || "",
     security_deposit: existingCustomer?.security_deposit?.toString() || "",
+    monthly_mileage: existingCustomer?.monthly_mileage?.toString() || "2000",
     lease_term_months: existingCustomer?.lease_term_months?.toString() || "",
     lease_start_date: existingCustomer?.lease_start_date || "",
     lease_end_date: existingCustomer?.lease_end_date || "",
@@ -93,6 +94,7 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
   const [selectedVehicle, setSelectedVehicle] = useState<InventoryVehicle | null>(null);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadingField, setUploadingField] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [showErrors, setShowErrors] = useState(false);
   
@@ -111,7 +113,7 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
     const tabFieldMap: Record<string, string[]> = {
       personal: ['customer_name', 'customer_email', 'customer_phone', 'emirates_id_number', 'address_line_1', 'city', 'emirate'],
       documents: ['emirates_id_front_url', 'emirates_id_back_url', 'passport_front_url', 'visa_copy_url', 'address_proof_url', 'driving_license_front_url', 'driving_license_back_url'],
-      pricing: ['selected_vehicle_id', 'monthly_payment', 'security_deposit', 'lease_term_months', 'lease_start_date', 'lease_end_date', 'buyout_price'],
+      pricing: ['selected_vehicle_id', 'monthly_payment', 'security_deposit', 'monthly_mileage', 'lease_term_months', 'lease_start_date', 'lease_end_date', 'buyout_price'],
       contract: []
     };
     
@@ -150,6 +152,64 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
     { key: 'driving_license_back_url', label: 'Driving License (Back)', required: true }
   ];
 
+  const emailValid = (val: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val.trim());
+  const isPositiveNumber = (val?: string) => !!val && !isNaN(Number(val)) && Number(val) > 0;
+  const isNonNegativeNumber = (val?: string) => val !== undefined && val !== "" && !isNaN(Number(val)) && Number(val) >= 0;
+  const isDateRangeValid = () => {
+    if (!contractInfo.lease_start_date || !contractInfo.lease_end_date) return false;
+    return new Date(contractInfo.lease_end_date) > new Date(contractInfo.lease_start_date);
+  };
+
+  const isPersonalComplete = () =>
+    personalInfo.customer_name.trim() &&
+    emailValid(personalInfo.customer_email || "") &&
+    personalInfo.customer_phone.trim() &&
+    personalInfo.emirates_id_number.trim() &&
+    addressInfo.address_line_1.trim() &&
+    addressInfo.city.trim() &&
+    addressInfo.emirate;
+
+  const isDocumentsComplete = () =>
+    documentFields
+      .filter(f => f.required)
+      .every(f => documentUrls[f.key as keyof typeof documentUrls]);
+
+  const isPricingComplete = () =>
+    contractInfo.selected_vehicle_id &&
+    isPositiveNumber(contractInfo.monthly_payment) &&
+    isNonNegativeNumber(contractInfo.security_deposit) &&
+    isPositiveNumber(contractInfo.monthly_mileage) &&
+    contractInfo.lease_term_months &&
+    contractInfo.lease_start_date &&
+    contractInfo.lease_end_date &&
+    isDateRangeValid() &&
+    (!contractInfo.lease_to_own_option || isPositiveNumber(contractInfo.buyout_price));
+
+  const isContractComplete = () =>
+    !!generatedContract || (isPersonalComplete() && isDocumentsComplete() && isPricingComplete());
+
+  const tabCompletion = useMemo(() => ({
+    personal: Boolean(isPersonalComplete()),
+    documents: Boolean(isDocumentsComplete()),
+    pricing: Boolean(isPricingComplete()),
+    contract: Boolean(isContractComplete())
+  }), [
+    personalInfo,
+    addressInfo,
+    documentUrls,
+    contractInfo,
+    generatedContract
+  ]);
+
+  const completionPct = useMemo(() => {
+    const done = Object.values(tabCompletion).filter(Boolean).length;
+    return Math.round((done / Object.keys(tabCompletion).length) * 100);
+  }, [tabCompletion]);
+
+  const Tick = ({ valid }: { valid: boolean }) => (
+    <span className={`ml-1 text-[11px] ${valid ? 'text-green-400' : 'text-white/20'}`}>{valid ? '✓' : ''}</span>
+  );
+
   // Update form when existingCustomer changes
   useEffect(() => {
     if (existingCustomer && !hasInitializedRef.current) {
@@ -172,6 +232,7 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
         selected_vehicle_id: existingCustomer.selected_vehicle_id || "",
         monthly_payment: existingCustomer.monthly_payment?.toString() || "",
         security_deposit: existingCustomer.security_deposit?.toString() || "",
+        monthly_mileage: existingCustomer.monthly_mileage?.toString() || "2000",
         lease_term_months: existingCustomer.lease_term_months?.toString() || "",
         lease_start_date: existingCustomer.lease_start_date || "",
         lease_end_date: existingCustomer.lease_end_date || "",
@@ -230,6 +291,7 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
         selected_vehicle_id: existingCustomer.selected_vehicle_id || "",
         monthly_payment: existingCustomer.monthly_payment?.toString() || "",
         security_deposit: existingCustomer.security_deposit?.toString() || "",
+        monthly_mileage: existingCustomer.monthly_mileage?.toString() || "2000",
         lease_term_months: existingCustomer.lease_term_months?.toString() || "",
         lease_start_date: existingCustomer.lease_start_date || "",
         lease_end_date: existingCustomer.lease_end_date || "",
@@ -333,6 +395,11 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
     } else if (parseFloat(contractInfo.security_deposit) < 0) {
       newErrors['security_deposit'] = 'Security deposit cannot be negative';
     }
+    if (!contractInfo.monthly_mileage) {
+      newErrors['monthly_mileage'] = 'Monthly mileage is required';
+    } else if (parseFloat(contractInfo.monthly_mileage) <= 0) {
+      newErrors['monthly_mileage'] = 'Monthly mileage must be greater than 0';
+    }
     if (!contractInfo.lease_term_months) {
       newErrors['lease_term_months'] = 'Lease term is required';
     }
@@ -435,6 +502,7 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                // Contract Terms
                monthly_payment: contractInfo.monthly_payment ? parseFloat(contractInfo.monthly_payment) : 0,
                security_deposit: contractInfo.security_deposit ? parseFloat(contractInfo.security_deposit) : 0,
+               monthly_mileage: contractInfo.monthly_mileage ? parseInt(contractInfo.monthly_mileage) : 2000,
                lease_term_months: contractInfo.lease_term_months ? parseInt(contractInfo.lease_term_months) : 0,
                lease_start_date: contractInfo.lease_start_date,
                lease_end_date: contractInfo.lease_end_date,
@@ -508,7 +576,7 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
           setActiveTab('personal');
         } else if (firstError.includes('_url')) {
           setActiveTab('documents');
-        } else if (['selected_vehicle_id', 'monthly_payment', 'security_deposit', 'lease_term_months', 'lease_start_date', 'lease_end_date', 'buyout_price'].includes(firstError)) {
+        } else if (['selected_vehicle_id', 'monthly_payment', 'security_deposit', 'monthly_mileage', 'lease_term_months', 'lease_start_date', 'lease_end_date', 'buyout_price'].includes(firstError)) {
           setActiveTab('pricing');
         } else {
           setActiveTab('contract');
@@ -540,6 +608,8 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
         selected_vehicle_id: contractInfo.selected_vehicle_id || null,
         monthly_payment: contractInfo.monthly_payment ? parseFloat(contractInfo.monthly_payment) : null,
         security_deposit: contractInfo.security_deposit ? parseFloat(contractInfo.security_deposit) : null,
+        monthly_mileage: contractInfo.monthly_mileage ? parseInt(contractInfo.monthly_mileage) : null,
+        excess_mileage_charges: contractInfo.excess_mileage_charges ? parseFloat(contractInfo.excess_mileage_charges) : null,
         lease_term_months: contractInfo.lease_term_months ? parseInt(contractInfo.lease_term_months) : null,
         lease_start_date: contractInfo.lease_start_date || null,
         lease_end_date: contractInfo.lease_end_date || null,
@@ -599,8 +669,7 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
       }
       setLoading(false);
       onCreated(result.data);
-      // Don't close the modal automatically - let user close it manually
-      // This allows them to see the updated data and make more edits if needed
+      onClose(); // Close modal after successful save
 
     } catch (error) {
       alert('Error saving contract. Please try again.');
@@ -612,6 +681,7 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
   // Handle file upload (placeholder for now)
   const handleFileUpload = async (field: string, file: File) => {
     setUploading(true);
+    setUploadingField(field);
     try {
       // TODO: Implement actual file upload to Supabase Storage
       // Simulate upload delay
@@ -623,6 +693,7 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
       }));
     } finally {
       setUploading(false);
+      setUploadingField(null);
     }
   };
 
@@ -636,6 +707,12 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
       </p>
     );
   };
+
+  useEffect(() => {
+    if (showErrors) {
+      setShowErrors(false);
+    }
+  }, [personalInfo, addressInfo, documentUrls, contractInfo, showErrors]);
 
   if (!isOpen) return null;
 
@@ -762,14 +839,15 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
         <div className="flex-1 overflow-y-auto max-h-full">
           {/* Tab Navigation - Inside scrollable area */}
           <div className="sticky top-0 bg-black/40 backdrop-blur-xl z-10 pt-4 px-4">
-            <div className="grid grid-cols-4 gap-1 bg-white/5 backdrop-blur-sm p-1 rounded-lg border border-white/10 mb-4">
+            <div className="grid grid-cols-4 gap-1 bg-white/5 backdrop-blur-sm p-1 rounded-lg border border-white/10 mb-3">
             {tabs.map((tab) => {
               const hasErrors = showErrors && getTabErrors(tab.id);
+              const completed = tabCompletion[tab.id as keyof typeof tabCompletion];
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                    className={`relative w-full py-4 px-3 font-semibold text-sm uppercase tracking-wide rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-white/30 focus:ring-offset-2 focus:ring-offset-black/40 ${
+                    className={`relative w-full py-3.5 px-3 font-semibold text-sm uppercase tracking-wide rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-white/30 focus:ring-offset-2 focus:ring-offset-black/40 ${
                     activeTab === tab.id
                       ? 'bg-gradient-to-br from-gray-200 via-gray-100 to-gray-400 text-black border border-white/30'
                       : hasErrors
@@ -779,6 +857,7 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                   type="button"
                   aria-current={activeTab === tab.id ? 'page' : undefined}
                 >
+                    {completed && <span className="absolute top-2 right-2 text-green-400 text-xs">✓</span>}
                     <span className="flex flex-col items-center gap-2">
                       <span className={`w-6 h-6 rounded-full flex items-center justify-center text-sm font-bold ${
                         activeTab === tab.id 
@@ -797,6 +876,15 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                 </button>
               );
             })}
+          </div>
+          <div className="flex items-center gap-2 mb-4">
+            <div className="flex-1 h-1.5 rounded-full bg-white/10 overflow-hidden border border-white/10">
+              <div
+                className="h-full bg-gradient-to-r from-green-400 via-emerald-400 to-green-500 transition-all duration-300"
+                style={{ width: `${completionPct}%` }}
+              />
+            </div>
+            <span className="text-[11px] text-white/70">{completionPct}% complete</span>
           </div>
         </div>
 
@@ -823,133 +911,149 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
             
             {/* Personal Tab */}
             {activeTab === 'personal' && (
-              <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 border border-white/10 shadow-lg" style={{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1)' }}>
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-white/10 backdrop-blur-sm text-white/80">
-                      <User size={20} />
-                    </div>
-                    Personal Information
-                  </h3>
-                  <div className="text-xs text-white/70 bg-white/10 backdrop-blur-sm px-2 py-1 rounded-full">
-                    Required Fields
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Customer Name */}
-                  <div>
-                    <label className={labelClass}>Customer Name *</label>
-                    <input
-                      type="text"
-                      value={personalInfo.customer_name}
-                      onChange={(e) => setPersonalInfo(prev => ({ ...prev, customer_name: e.target.value }))}
-                      className={`${fieldClass} ${errors.customer_name ? 'border-red-400 focus:border-red-400 focus:ring-red-400/30' : ''}`}
-                      required
-                    />
-                    <ErrorMessage field="customer_name" />
-                  </div>
-
-                  {/* Email */}
-                  <div>
-                    <label className={labelClass}>Email Address *</label>
-                    <input
-                      type="email"
-                      value={personalInfo.customer_email}
-                      onChange={(e) => setPersonalInfo(prev => ({ ...prev, customer_email: e.target.value }))}
-                      className={`${fieldClass} ${errors.customer_email ? 'border-red-400 focus:border-red-400 focus:ring-red-400/30' : ''}`}
-                      required
-                    />
-                    <ErrorMessage field="customer_email" />
-                  </div>
-
-                  {/* Phone */}
-                  <div>
-                    <label className={labelClass}>Phone Number *</label>
-                    <input
-                      type="tel"
-                      value={personalInfo.customer_phone}
-                      onChange={(e) => setPersonalInfo(prev => ({ ...prev, customer_phone: e.target.value }))}
-                      className={`${fieldClass} ${errors.customer_phone ? 'border-red-400 focus:border-red-400 focus:ring-red-400/30' : ''}`}
-                      required
-                    />
-                    <ErrorMessage field="customer_phone" />
-                  </div>
-
-                  {/* Emirates ID */}
-                  <div>
-                    <label className={labelClass}>Emirates ID Number</label>
-                    <input
-                      type="text"
-                      value={personalInfo.emirates_id_number}
-                      onChange={(e) => setPersonalInfo(prev => ({ ...prev, emirates_id_number: e.target.value }))}
-                      className={fieldClass}
-                      placeholder="784-XXXX-XXXXXXX-X"
-                    />
-                  </div>
-                </div>
-
-                {/* Address Information Section */}
-                <div className="mt-8 pt-6 border-t border-white/10">
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 min-h-[420px]">
+                {/* Left Column - Personal Information */}
+                <div className="bg-neutral-900/50 backdrop-blur-md rounded-xl p-6 border border-white/10 flex flex-col">
                   <div className="flex items-center justify-between mb-6">
-                    <h4 className="text-lg font-semibold text-white flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg bg-white/10 backdrop-blur-sm text-white/80">
+                    <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-white/10 text-white/80">
+                        <User size={16} />
+                      </div>
+                      Personal Information
+                    </h3>
+                    <div className="text-[10px] text-white/60 bg-white/10 px-2 py-0.5 rounded-full">
+                      Required
+                    </div>
+                  </div>
+
+                  <div className="space-y-5 flex-1">
+                    {/* Customer Name */}
+                    <div>
+                      <label className={compactLabelClass}>
+                        Customer Name * <Tick valid={!!personalInfo.customer_name.trim()} />
+                      </label>
+                      <input
+                        type="text"
+                        value={personalInfo.customer_name}
+                        onChange={(e) => setPersonalInfo(prev => ({ ...prev, customer_name: e.target.value }))}
+                        className={`${compactFieldClass} ${errors.customer_name ? 'border-red-400 focus:border-red-400 focus:ring-red-400/30' : ''}`}
+                        required
+                      />
+                      <ErrorMessage field="customer_name" />
+                    </div>
+
+                    {/* Email */}
+                    <div>
+                      <label className={compactLabelClass}>
+                        Email Address * <Tick valid={emailValid(personalInfo.customer_email || "")} />
+                      </label>
+                      <input
+                        type="email"
+                        value={personalInfo.customer_email}
+                        onChange={(e) => setPersonalInfo(prev => ({ ...prev, customer_email: e.target.value }))}
+                        className={`${compactFieldClass} ${errors.customer_email ? 'border-red-400 focus:border-red-400 focus:ring-red-400/30' : ''}`}
+                        required
+                      />
+                      <ErrorMessage field="customer_email" />
+                    </div>
+
+                    {/* Phone */}
+                    <div>
+                      <label className={compactLabelClass}>
+                        Phone Number * <Tick valid={!!personalInfo.customer_phone.trim()} />
+                      </label>
+                      <input
+                        type="tel"
+                        value={personalInfo.customer_phone}
+                        onChange={(e) => setPersonalInfo(prev => ({ ...prev, customer_phone: e.target.value }))}
+                        className={`${compactFieldClass} ${errors.customer_phone ? 'border-red-400 focus:border-red-400 focus:ring-red-400/30' : ''}`}
+                        required
+                      />
+                      <ErrorMessage field="customer_phone" />
+                    </div>
+
+                    {/* Emirates ID */}
+                    <div>
+                      <label className={compactLabelClass}>
+                        Emirates ID Number <Tick valid={!!personalInfo.emirates_id_number.trim()} />
+                      </label>
+                      <input
+                        type="text"
+                        value={personalInfo.emirates_id_number}
+                        onChange={(e) => setPersonalInfo(prev => ({ ...prev, emirates_id_number: e.target.value }))}
+                        className={compactFieldClass}
+                        placeholder="784-XXXX-XXXXXXX-X"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Right Column - Address Information */}
+                <div className="bg-neutral-900/50 backdrop-blur-md rounded-xl p-6 border border-white/10 flex flex-col">
+                  <div className="flex items-center justify-between mb-6">
+                    <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-white/10 text-white/80">
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
                         </svg>
                       </div>
                       Address Information
-                    </h4>
-                    <div className="text-xs text-white/70 bg-white/10 backdrop-blur-sm px-2 py-1 rounded-full">
+                    </h3>
+                    <div className="text-[10px] text-white/60 bg-white/10 px-2 py-0.5 rounded-full">
                       Required
                     </div>
-                </div>
-
-                <div className="space-y-6">
-                  {/* Address Line 1 */}
-                  <div>
-                    <label className={labelClass}>Address Line 1</label>
-                    <input
-                      type="text"
-                      value={addressInfo.address_line_1}
-                      onChange={(e) => setAddressInfo(prev => ({ ...prev, address_line_1: e.target.value }))}
-                      className={fieldClass}
-                      placeholder="Building name, street name"
-                    />
                   </div>
 
-                  {/* Address Line 2 */}
-                  <div>
-                    <label className={labelClass}>Address Line 2</label>
-                    <input
-                      type="text"
-                      value={addressInfo.address_line_2}
-                      onChange={(e) => setAddressInfo(prev => ({ ...prev, address_line_2: e.target.value }))}
-                      className={fieldClass}
-                      placeholder="Apartment, suite, unit, etc."
-                    />
-                  </div>
+                  <div className="space-y-5 flex-1">
+                    {/* Address Line 1 */}
+                    <div>
+                      <label className={compactLabelClass}>
+                        Address Line 1 <Tick valid={!!addressInfo.address_line_1.trim()} />
+                      </label>
+                      <input
+                        type="text"
+                        value={addressInfo.address_line_1}
+                        onChange={(e) => setAddressInfo(prev => ({ ...prev, address_line_1: e.target.value }))}
+                        className={compactFieldClass}
+                        placeholder="Building name, street name"
+                      />
+                    </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Address Line 2 */}
+                    <div>
+                      <label className={compactLabelClass}>Address Line 2</label>
+                      <input
+                        type="text"
+                        value={addressInfo.address_line_2}
+                        onChange={(e) => setAddressInfo(prev => ({ ...prev, address_line_2: e.target.value }))}
+                        className={compactFieldClass}
+                        placeholder="Apartment, suite, unit"
+                      />
+                    </div>
+
                     {/* City */}
                     <div>
-                      <label className={labelClass}>City</label>
+                      <label className={compactLabelClass}>
+                        City <Tick valid={!!addressInfo.city.trim()} />
+                      </label>
                       <input
                         type="text"
                         value={addressInfo.city}
                         onChange={(e) => setAddressInfo(prev => ({ ...prev, city: e.target.value }))}
-                        className={fieldClass}
+                        className={compactFieldClass}
                       />
                     </div>
 
                     {/* Emirate */}
                     <div>
-                      <label className={labelClass}>Emirate</label>
+                      <label className={compactLabelClass}>
+                        Emirate <Tick valid={!!addressInfo.emirate} />
+                      </label>
                       <select
                         value={addressInfo.emirate}
                         onChange={(e) => setAddressInfo(prev => ({ ...prev, emirate: e.target.value }))}
-                        className={fieldClass}
+                        className={compactFieldClass}
                       >
                         {emirates.map(emirate => (
                           <option key={emirate.value} value={emirate.value} className="bg-gray-800 text-white">
@@ -957,7 +1061,6 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                           </option>
                         ))}
                       </select>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -968,75 +1071,73 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
 
             {/* Documents Tab */}
             {activeTab === 'documents' && (
-              <div className="space-y-6">
+              <div className="space-y-4">
                 {/* Document Upload Sections - Two Column Layout */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {documentFields.map((field) => {
                   const isUploaded = documentUrls[field.key as keyof typeof documentUrls];
                   
                   return (
-                    <div key={field.key} className="border border-white/15 rounded-md p-4 bg-white/5">
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="text-sm font-semibold text-white">
+                    <div key={field.key} className="border border-white/20 rounded-md p-3 bg-white/8">
+                      <div className="flex items-center justify-between mb-3">
+                        <h4 className="text-sm font-semibold text-white flex items-center gap-1">
                           {field.label}
                           {field.required && <span className="text-red-400 ml-1">*</span>}
+                          <Tick valid={field.required ? !!isUploaded : !!isUploaded} />
                         </h4>
-                        <button
-                          onClick={() => document.getElementById(`upload-${field.key}`)?.click()}
-                          disabled={uploading}
-                          className="text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 h-9 min-w-[160px] rounded transition-colors disabled:opacity-50"
-                        >
-                          {uploading ? 'Uploading…' : 'Upload'}
-                        </button>
-                      </div>
-                      
-                      {/* Uploaded Documents List */}
-                      {isUploaded && (
-                        <div className="mt-4 space-y-2">
-                          <h5 className="text-sm font-medium text-white/80">Uploaded Documents</h5>
-                          <div className="flex items-center justify-between p-2 bg-black/30 rounded">
-                            <span className="text-sm text-white/80">{field.label.replace(/\s+/g, '_')}.pdf</span>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => {
-                                  const url = documentUrls[field.key as keyof typeof documentUrls];
-                                  if (url) window.open(url, '_blank');
-                                }}
-                                className="text-sm text-gray-400 hover:text-white underline"
-                              >
-                                View
-                              </button>
-                              <button
-                                onClick={() => {
-                                  const url = documentUrls[field.key as keyof typeof documentUrls];
-                                  if (url) {
-                                    const a = document.createElement('a');
-                                    a.href = url;
-                                    a.download = `${field.label.replace(/\s+/g, '_')}.pdf`;
-                                    a.click();
-                                  }
-                                }}
-                                className="text-sm text-gray-400 hover:text-white underline"
-                              >
-                                Download
-                              </button>
-                              <button
-                                onClick={() => {
-                                  if (confirm('Are you sure you want to delete this document?')) {
-                                    setDocumentUrls(prev => ({
-                                      ...prev,
-                                      [field.key]: ''
-                                    }));
-                                  }
-                                }}
-                                className="text-sm text-red-400 hover:text-red-300 underline"
-                              >
-                                Delete
-                              </button>
-                            </div>
+                        {isUploaded ? (
+                          <div className="flex items-center gap-2 text-xs">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const url = documentUrls[field.key as keyof typeof documentUrls];
+                                if (url) window.open(url, '_blank');
+                              }}
+                              className="px-2 py-1 bg-white/10 hover:bg-white/20 text-white rounded transition-colors"
+                            >
+                              View
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const url = documentUrls[field.key as keyof typeof documentUrls];
+                                if (url) {
+                                  const a = document.createElement('a');
+                                  a.href = url;
+                                  a.download = `${field.label.replace(/\s+/g, '_')}.pdf`;
+                                  a.click();
+                                }
+                              }}
+                              className="px-2 py-1 bg-white/10 hover:bg-white/20 text-white rounded transition-colors"
+                            >
+                              Download
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                if (confirm('Delete this document?')) {
+                                  setDocumentUrls(prev => ({
+                                    ...prev,
+                                    [field.key]: ''
+                                  }));
+                                }
+                              }}
+                              className="px-2 py-1 bg-red-500/20 hover:bg-red-500/30 text-red-200 rounded transition-colors"
+                            >
+                              Delete
+                            </button>
                           </div>
-                        </div>
-                      )}
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => document.getElementById(`upload-${field.key}`)?.click()}
+                            disabled={uploadingField === field.key}
+                            className="text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1.25 h-9 min-w-[150px] rounded transition-colors disabled:opacity-50"
+                          >
+                            {uploadingField === field.key ? 'Uploading…' : 'Upload'}
+                          </button>
+                        )}
+                      </div>
                       
                       {/* Hidden file input */}
                       <input
@@ -1059,15 +1160,16 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                 </div>
 
                 {/* Other Documents Section */}
-                <div className="border border-white/15 rounded-md p-4 bg-white/5">
-                  <div className="flex items-center justify-between mb-4">
+                <div className="border border-white/20 rounded-md p-3 bg-white/8">
+                  <div className="flex items-center justify-between mb-3">
                     <h4 className="text-sm font-semibold text-white">Other Documents</h4>
                     <button
+                      type="button"
                       onClick={() => document.getElementById('upload-other-documents')?.click()}
-                      disabled={uploading}
-                      className="text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1.5 h-9 min-w-[160px] rounded transition-colors disabled:opacity-50"
+                      disabled={uploadingField === 'other-documents'}
+                      className="text-sm bg-white/10 hover:bg-white/20 text-white px-3 py-1.25 h-9 min-w-[150px] rounded transition-colors disabled:opacity-50"
                     >
-                      {uploading ? 'Uploading…' : 'Upload'}
+                      {uploadingField === 'other-documents' ? 'Uploading…' : 'Upload'}
                     </button>
                   </div>
 
@@ -1087,6 +1189,7 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                     onChange={(e) => {
                       const files = Array.from(e.target.files || []);
                       if (files.length > 0) {
+                          setUploadingField('other-documents');
                         const filesList = document.getElementById('other-documents-list');
                         const filesItems = document.getElementById('other-documents-items');
                         
@@ -1108,6 +1211,7 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
                             `;
                             filesItems.appendChild(fileItem);
                           });
+                          setTimeout(() => setUploadingField(null), 300);
                         }
                       }
                     }}
@@ -1121,534 +1225,486 @@ export default function LeasingContractModal({ isOpen, onClose, onCreated, mode 
 
             {/* Pricing Tab */}
             {activeTab === 'pricing' && (
-              <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 border border-white/10 shadow-lg" style={{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1)' }}>
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-white/10 backdrop-blur-sm text-white/80">
-                      <DollarSign size={20} />
-                    </div>
-                    Contract Pricing
-                  </h3>
-                  <div className="text-xs text-white/70 bg-white/10 backdrop-blur-sm px-2 py-1 rounded-full">
-                    Vehicle & Terms
+              <div className="space-y-4">
+                {/* Top Row - Vehicle Details (Full Width) */}
+                <div className="bg-neutral-900/50 backdrop-blur-md rounded-xl p-4 border border-white/10">
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-white/10 text-white/80">
+                        <Car size={16} />
+                      </div>
+                      Selected Vehicle
+                    </h3>
                   </div>
-                </div>
-
-                {/* Selected Vehicle Display */}
-                {selectedVehicle && (
-                  <div className="bg-gradient-to-br from-black/40 via-neutral-900/30 to-black/50 backdrop-blur-sm border border-neutral-400/20 rounded-xl p-6 mb-6 shadow-lg">
-                    <div className="mb-6">
-                      <h4 className="text-xl font-bold text-white flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-gradient-to-br from-neutral-700/50 to-neutral-800/50 backdrop-blur-sm border border-neutral-400/20">
-                          <svg className="w-5 h-5 text-neutral-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
-                          </svg>
-                        </div>
-                        Selected Vehicle Details
-                      </h4>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {/* Vehicle Information Cards */}
-                      <div className="bg-gradient-to-br from-neutral-800/40 to-neutral-900/40 rounded-lg p-4 border border-neutral-400/20 backdrop-blur-sm">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-2 h-2 rounded-full bg-neutral-400"></div>
-                          <span className="text-neutral-400 text-xs uppercase tracking-wider font-medium">Make & Model</span>
-                        </div>
-                        <p className="text-white font-semibold text-lg">{selectedVehicle.make} {selectedVehicle.vehicle_model}</p>
+                  {selectedVehicle ? (
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                      <div className="text-center">
+                        <span className="text-white/50 text-[10px] uppercase tracking-wide block mb-1">Make & Model</span>
+                        <span className="text-white font-medium text-sm">{selectedVehicle.make} {selectedVehicle.vehicle_model}</span>
                       </div>
-                      
-                      <div className="bg-gradient-to-br from-neutral-800/40 to-neutral-900/40 rounded-lg p-4 border border-neutral-400/20 backdrop-blur-sm">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-2 h-2 rounded-full bg-neutral-400"></div>
-                          <span className="text-neutral-400 text-xs uppercase tracking-wider font-medium">Year</span>
-                        </div>
-                        <p className="text-white font-semibold text-lg">{selectedVehicle.model_year}</p>
+                      <div className="text-center">
+                        <span className="text-white/50 text-[10px] uppercase tracking-wide block mb-1">Year</span>
+                        <span className="text-white font-medium text-sm">{selectedVehicle.model_year}</span>
                       </div>
-                      
-                      <div className="bg-gradient-to-br from-neutral-800/40 to-neutral-900/40 rounded-lg p-4 border border-neutral-400/20 backdrop-blur-sm">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-2 h-2 rounded-full bg-neutral-400"></div>
-                          <span className="text-neutral-400 text-xs uppercase tracking-wider font-medium">Stock Number</span>
-                        </div>
-                        <p className="text-white font-semibold text-lg">{selectedVehicle.stock_number}</p>
+                      <div className="text-center">
+                        <span className="text-white/50 text-[10px] uppercase tracking-wide block mb-1">Stock #</span>
+                        <span className="text-white font-medium text-sm">{selectedVehicle.stock_number}</span>
                       </div>
-                      
-                      <div className="bg-gradient-to-br from-neutral-800/40 to-neutral-900/40 rounded-lg p-4 border border-neutral-400/20 backdrop-blur-sm">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-2 h-2 rounded-full bg-neutral-400"></div>
-                          <span className="text-neutral-400 text-xs uppercase tracking-wider font-medium">Exterior Color</span>
-                        </div>
-                        <p className="text-white font-semibold text-lg">{selectedVehicle.colour || 'Not specified'}</p>
+                      <div className="text-center">
+                        <span className="text-white/50 text-[10px] uppercase tracking-wide block mb-1">Exterior</span>
+                        <span className="text-white font-medium text-sm">{selectedVehicle.colour || '—'}</span>
                       </div>
-                      
-                      <div className="bg-gradient-to-br from-neutral-800/40 to-neutral-900/40 rounded-lg p-4 border border-neutral-400/20 backdrop-blur-sm">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-2 h-2 rounded-full bg-neutral-400"></div>
-                          <span className="text-neutral-400 text-xs uppercase tracking-wider font-medium">Interior Color</span>
-                        </div>
-                        <p className="text-white font-semibold text-lg">{selectedVehicle.interior_colour || 'Not specified'}</p>
+                      <div className="text-center">
+                        <span className="text-white/50 text-[10px] uppercase tracking-wide block mb-1">Interior</span>
+                        <span className="text-white font-medium text-sm">{selectedVehicle.interior_colour || '—'}</span>
                       </div>
-                      
-                      <div className="bg-gradient-to-br from-neutral-800/40 to-neutral-900/40 rounded-lg p-4 border border-neutral-400/20 backdrop-blur-sm">
-                        <div className="flex items-center gap-2 mb-2">
-                          <div className="w-2 h-2 rounded-full bg-neutral-400"></div>
-                          <span className="text-neutral-400 text-xs uppercase tracking-wider font-medium">Excess Mileage Charges</span>
-                        </div>
-                        <p className="text-white font-bold text-lg">
-                          {selectedVehicle.excess_mileage_charges ? `AED ${parseFloat(selectedVehicle.excess_mileage_charges.toString()).toFixed(2)}/km` : 'Not set'}
-                        </p>
-                      </div>
-                    </div>
-                    
-                    {/* Pricing Information Section */}
-                    <div className="mt-6 pt-6 border-t border-neutral-400/20">
-                      <h5 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-neutral-400"></div>
-                        Inventory Pricing
-                      </h5>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-gradient-to-br from-neutral-700/30 to-neutral-800/30 rounded-lg p-4 border border-neutral-400/30 backdrop-blur-sm">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-neutral-300 text-sm font-medium">Monthly Lease Rate</span>
-                            <div className="w-1 h-1 rounded-full bg-neutral-400"></div>
-                          </div>
-                          <p className="text-white font-bold text-xl">
-                            {selectedVehicle.monthly_lease_rate ? `AED ${parseFloat(selectedVehicle.monthly_lease_rate.toString()).toLocaleString()}` : 'Not set'}
-                          </p>
-                        </div>
-                        
-                        <div className="bg-gradient-to-br from-neutral-700/30 to-neutral-800/30 rounded-lg p-4 border border-neutral-400/30 backdrop-blur-sm">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-neutral-300 text-sm font-medium">Security Deposit</span>
-                            <div className="w-1 h-1 rounded-full bg-neutral-400"></div>
-                          </div>
-                          <p className="text-white font-bold text-xl">
-                            {selectedVehicle.security_deposit ? `AED ${parseFloat(selectedVehicle.security_deposit.toString()).toLocaleString()}` : 'Not set'}
-                          </p>
-                        </div>
-                        
-                        <div className="bg-gradient-to-br from-neutral-700/30 to-neutral-800/30 rounded-lg p-4 border border-neutral-400/30 backdrop-blur-sm">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className="text-neutral-300 text-sm font-medium">Buyout Price</span>
-                            <div className="w-1 h-1 rounded-full bg-neutral-400"></div>
-                          </div>
-                          <p className="text-white font-bold text-xl">
-                            {selectedVehicle.buyout_price ? `AED ${parseFloat(selectedVehicle.buyout_price.toString()).toLocaleString()}` : 'Not set'}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Monthly Payment */}
-                  <div>
-                    <label className={labelClass}>
-                      Monthly Payment (AED)
-                      {selectedVehicle?.monthly_lease_rate && contractInfo.monthly_payment === selectedVehicle.monthly_lease_rate.toString() && (
-                        <span className="ml-2 px-2 py-0.5 bg-gradient-to-r from-neutral-600/30 to-neutral-700/30 text-neutral-300 text-xs rounded-full border border-neutral-400/20">
-                          From Vehicle
+                      <div className="text-center">
+                        <span className="text-white/50 text-[10px] uppercase tracking-wide block mb-1">Mileage Rate</span>
+                        <span className="text-white font-medium text-sm">
+                          {selectedVehicle.excess_mileage_charges ? `AED ${parseFloat(selectedVehicle.excess_mileage_charges.toString()).toFixed(2)}/km` : '—'}
                         </span>
-                      )}
-                    </label>
-                    <input
-                      type="number"
-                      value={contractInfo.monthly_payment}
-                      onChange={(e) => setContractInfo(prev => ({ ...prev, monthly_payment: e.target.value }))}
-                      className={fieldClass}
-                      min="0"
-                      step="0.01"
-                      placeholder={selectedVehicle?.monthly_lease_rate ? `Suggested: ${selectedVehicle.monthly_lease_rate}` : "Enter amount"}
-                    />
-                  </div>
-
-                  {/* Security Deposit */}
-                  <div>
-                    <label className={labelClass}>
-                      Security Deposit (AED)
-                      {selectedVehicle?.security_deposit && contractInfo.security_deposit === selectedVehicle.security_deposit.toString() && (
-                        <span className="ml-2 px-2 py-0.5 bg-gradient-to-r from-neutral-600/30 to-neutral-700/30 text-neutral-300 text-xs rounded-full border border-neutral-400/20">
-                          From Vehicle
-                        </span>
-                      )}
-                    </label>
-                    <input
-                      type="number"
-                      value={contractInfo.security_deposit}
-                      onChange={(e) => setContractInfo(prev => ({ ...prev, security_deposit: e.target.value }))}
-                      className={fieldClass}
-                      min="0"
-                      step="0.01"
-                      placeholder={selectedVehicle?.security_deposit ? `Suggested: ${selectedVehicle.security_deposit}` : "Enter amount"}
-                    />
-                  </div>
-
-                  {/* Lease Term */}
-                  <div>
-                    <label className={labelClass}>Lease Term (Months)</label>
-                    <select
-                      value={contractInfo.lease_term_months}
-                      onChange={(e) => setContractInfo(prev => ({ ...prev, lease_term_months: e.target.value }))}
-                      className={fieldClass}
-                    >
-                      <option value="" className="bg-gray-800 text-white">Select term</option>
-                      <option value="12" className="bg-gray-800 text-white">12 months</option>
-                      <option value="24" className="bg-gray-800 text-white">24 months</option>
-                      <option value="36" className="bg-gray-800 text-white">36 months</option>
-                      <option value="48" className="bg-gray-800 text-white">48 months</option>
-                    </select>
-                  </div>
-
-                  {/* Excess Mileage Charges */}
-                  <div>
-                    <label className={labelClass}>
-                      Excess Mileage Charges (AED per km)
-                      {selectedVehicle?.excess_mileage_charges && contractInfo.excess_mileage_charges === selectedVehicle.excess_mileage_charges.toString() && (
-                        <span className="ml-2 px-2 py-0.5 bg-gradient-to-r from-neutral-600/30 to-neutral-700/30 text-neutral-300 text-xs rounded-full border border-neutral-400/20">
-                          From Vehicle
-                        </span>
-                      )}
-                    </label>
-                    <input
-                      type="number"
-                      value={contractInfo.excess_mileage_charges}
-                      onChange={(e) => setContractInfo(prev => ({ ...prev, excess_mileage_charges: e.target.value }))}
-                      className={fieldClass}
-                      min="0"
-                      step="0.01"
-                      placeholder={selectedVehicle?.excess_mileage_charges ? `Suggested: ${selectedVehicle.excess_mileage_charges}` : "Enter rate per km"}
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      Charge per kilometer when customer exceeds mileage limit
-                      {selectedVehicle?.excess_mileage_charges && (
-                        <span className="ml-2 text-orange-400">
-                          (Vehicle suggests: AED {parseFloat(selectedVehicle.excess_mileage_charges.toString()).toFixed(2)}/km)
-                        </span>
-                      )}
-                    </p>
-                  </div>
-
-                  {/* Lease to Own Option */}
-                  <div className="flex items-center space-x-3">
-                    <input
-                      type="checkbox"
-                      id="lease_to_own"
-                      checked={contractInfo.lease_to_own_option}
-                      onChange={(e) => setContractInfo(prev => ({ ...prev, lease_to_own_option: e.target.checked }))}
-                      className="w-5 h-5 rounded border-white/10 bg-black/20 text-white focus:ring-white/30"
-                    />
-                    <label htmlFor="lease_to_own" className={labelClass + " mb-0"}>
-                      Lease-to-Own Option
-                    </label>
-                  </div>
-
-                  {/* Buyout Price - Only show when lease-to-own is selected */}
-                  {contractInfo.lease_to_own_option && (
-                    <div>
-                      <label className={labelClass}>
-                        Buyout Price (AED) *
-                        {selectedVehicle?.buyout_price && contractInfo.buyout_price === selectedVehicle.buyout_price.toString() && (
-                          <span className="ml-2 px-2 py-0.5 bg-gradient-to-r from-neutral-600/30 to-neutral-700/30 text-neutral-300 text-xs rounded-full border border-neutral-400/20">
-                            From Vehicle
-                          </span>
-                        )}
-                      </label>
-                      <input
-                        type="number"
-                        value={contractInfo.buyout_price}
-                        onChange={(e) => setContractInfo(prev => ({ ...prev, buyout_price: e.target.value }))}
-                        className={fieldClass}
-                        min="0"
-                        step="0.01"
-                        placeholder={selectedVehicle?.buyout_price ? `Suggested: ${selectedVehicle.buyout_price}` : "Enter buyout price for lease-to-own"}
-                        required={contractInfo.lease_to_own_option}
-                      />
-                      <p className="text-xs text-gray-500 mt-1">
-                        Price customer will pay to own the vehicle at lease end
-                        {selectedVehicle?.buyout_price && (
-                          <span className="ml-2 text-purple-400">
-                            (Vehicle suggests: AED {parseFloat(selectedVehicle.buyout_price.toString()).toLocaleString()})
-                          </span>
-                        )}
-                      </p>
+                      </div>
                     </div>
+                  ) : (
+                    <div className="text-center text-white/40 text-sm py-4">No vehicle selected</div>
                   )}
-
-                  {/* Lease Start Date */}
-                  <div>
-                    <label className={labelClass}>Lease Start Date</label>
-                    <input
-                      type="date"
-                      value={contractInfo.lease_start_date}
-                      onChange={(e) => setContractInfo(prev => ({ ...prev, lease_start_date: e.target.value }))}
-                      className={fieldClass}
-                    />
-                  </div>
-
-                  {/* Lease End Date */}
-                  <div>
-                    <label className={labelClass}>Lease End Date</label>
-                    <input
-                      type="date"
-                      value={contractInfo.lease_end_date}
-                      onChange={(e) => setContractInfo(prev => ({ ...prev, lease_end_date: e.target.value }))}
-                      className={fieldClass}
-                    />
-                  </div>
                 </div>
 
-                {/* Notes */}
-                <div>
-                  <label className={labelClass}>Additional Notes</label>
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    className={fieldClass + " min-h-[120px] resize-vertical"}
-                    placeholder="Any additional notes or special terms..."
-                  />
+                {/* Bottom Row - Two Columns */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {/* Left Column - Inventory Pricing (Reference) */}
+                  <div className="bg-neutral-900/50 backdrop-blur-md rounded-xl p-4 border border-white/10 flex flex-col">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-white/10 text-white/80">
+                          <DollarSign size={16} />
+                        </div>
+                        Inventory Pricing
+                      </h3>
+                      <div className="text-[10px] text-white/50 bg-white/10 px-2 py-0.5 rounded-full">Reference</div>
+                    </div>
+                    {selectedVehicle ? (
+                      <div className="flex-1 flex flex-col justify-between space-y-3">
+                        <div className="flex justify-between items-center py-3.5 bg-neutral-800/40 rounded-lg px-4">
+                          <span className="text-white/60 text-sm">Monthly Rate</span>
+                          <span className="text-white font-bold text-lg">
+                            {selectedVehicle.monthly_lease_rate ? `AED ${parseFloat(selectedVehicle.monthly_lease_rate.toString()).toLocaleString()}` : '—'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center py-3.5 bg-neutral-800/40 rounded-lg px-4">
+                          <span className="text-white/60 text-sm">Security Deposit</span>
+                          <span className="text-white font-bold text-lg">
+                            {selectedVehicle.security_deposit ? `AED ${parseFloat(selectedVehicle.security_deposit.toString()).toLocaleString()}` : '—'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center py-3.5 bg-neutral-800/40 rounded-lg px-4">
+                          <span className="text-white/60 text-sm">Buyout Price</span>
+                          <span className="text-white font-bold text-lg">
+                            {selectedVehicle.buyout_price ? `AED ${parseFloat(selectedVehicle.buyout_price.toString()).toLocaleString()}` : '—'}
+                          </span>
+                        </div>
+                        <div className="flex justify-between items-center py-3.5 bg-neutral-800/40 rounded-lg px-4">
+                          <span className="text-white/60 text-sm">Excess Mileage</span>
+                          <span className="text-white font-bold text-lg">
+                            {selectedVehicle.excess_mileage_charges ? `AED ${parseFloat(selectedVehicle.excess_mileage_charges.toString()).toFixed(2)}/km` : '—'}
+                          </span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex-1 flex items-center justify-center text-white/40 text-sm">No vehicle selected</div>
+                    )}
+                  </div>
+
+                  {/* Right Column - Contract Terms (Editable) */}
+                  <div className="bg-neutral-900/50 backdrop-blur-md rounded-xl p-4 border border-white/10 flex flex-col">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-white/10 text-white/80">
+                          <FileText size={16} />
+                        </div>
+                        Contract Terms
+                      </h3>
+                      <div className="text-[10px] text-white/50 bg-white/10 px-2 py-0.5 rounded-full">Editable</div>
+                    </div>
+                    <div className="flex-1 flex flex-col justify-between space-y-3">
+                      {/* Monthly Payment & Security Deposit - Side by side */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className={compactLabelClass}>
+                            Monthly Payment (AED) <Tick valid={isPositiveNumber(contractInfo.monthly_payment)} />
+                          </label>
+                          <input
+                            type="number"
+                            value={contractInfo.monthly_payment}
+                            onChange={(e) => setContractInfo(prev => ({ ...prev, monthly_payment: e.target.value }))}
+                            className={compactFieldClass}
+                            min="0"
+                            step="0.01"
+                            placeholder={selectedVehicle?.monthly_lease_rate ? `${selectedVehicle.monthly_lease_rate}` : "Amount"}
+                          />
+                        </div>
+                        <div>
+                          <label className={compactLabelClass}>
+                            Security Deposit (AED) <Tick valid={isNonNegativeNumber(contractInfo.security_deposit)} />
+                          </label>
+                          <input
+                            type="number"
+                            value={contractInfo.security_deposit}
+                            onChange={(e) => setContractInfo(prev => ({ ...prev, security_deposit: e.target.value }))}
+                            className={compactFieldClass}
+                            min="0"
+                            step="0.01"
+                            placeholder={selectedVehicle?.security_deposit ? `${selectedVehicle.security_deposit}` : "Amount"}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Lease Term, Monthly Mileage, Excess Mileage - Inline */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                          <label className={compactLabelClass}>
+                            Lease Term <Tick valid={!!contractInfo.lease_term_months} />
+                          </label>
+                          <select
+                            value={contractInfo.lease_term_months}
+                            onChange={(e) => setContractInfo(prev => ({ ...prev, lease_term_months: e.target.value }))}
+                            className={compactFieldClass}
+                          >
+                            <option value="" className="bg-gray-800 text-white">Select</option>
+                            <option value="12" className="bg-gray-800 text-white">12 mo</option>
+                            <option value="24" className="bg-gray-800 text-white">24 mo</option>
+                            <option value="36" className="bg-gray-800 text-white">36 mo</option>
+                            <option value="48" className="bg-gray-800 text-white">48 mo</option>
+                          </select>
+                        </div>
+                        <div>
+                          <label className={compactLabelClass}>
+                            Monthly Mileage (KM) <Tick valid={isPositiveNumber(contractInfo.monthly_mileage)} />
+                          </label>
+                          <input
+                            type="number"
+                            value={contractInfo.monthly_mileage}
+                            onChange={(e) => setContractInfo(prev => ({ ...prev, monthly_mileage: e.target.value }))}
+                            className={compactFieldClass}
+                            min="0"
+                            step="1"
+                            placeholder="2000"
+                          />
+                          <ErrorMessage field="monthly_mileage" />
+                        </div>
+                        <div>
+                          <label className={compactLabelClass}>
+                            Excess Mileage (AED/km) <Tick valid={!!contractInfo.excess_mileage_charges} />
+                          </label>
+                          <input
+                            type="number"
+                            value={contractInfo.excess_mileage_charges}
+                            onChange={(e) => setContractInfo(prev => ({ ...prev, excess_mileage_charges: e.target.value }))}
+                            className={compactFieldClass}
+                            min="0"
+                            step="0.01"
+                            placeholder="AED/km"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Dates - Side by side */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className={compactLabelClass}>
+                            Start Date <Tick valid={!!contractInfo.lease_start_date} />
+                          </label>
+                          <input
+                            type="date"
+                            value={contractInfo.lease_start_date}
+                            onChange={(e) => setContractInfo(prev => ({ ...prev, lease_start_date: e.target.value }))}
+                            className={compactFieldClass}
+                          />
+                        </div>
+                        <div>
+                          <label className={compactLabelClass}>
+                            End Date <Tick valid={!!contractInfo.lease_end_date && isDateRangeValid()} />
+                          </label>
+                          <input
+                            type="date"
+                            value={contractInfo.lease_end_date}
+                            onChange={(e) => setContractInfo(prev => ({ ...prev, lease_end_date: e.target.value }))}
+                            className={compactFieldClass}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Lease to Own & Buyout - Inline */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="flex items-center justify-between py-2.5 bg-neutral-800/40 rounded-lg px-4">
+                          <label htmlFor="lease_to_own" className="text-white/80 text-sm">Lease-to-Own</label>
+                          <input
+                            type="checkbox"
+                            id="lease_to_own"
+                            checked={contractInfo.lease_to_own_option}
+                            onChange={(e) => setContractInfo(prev => ({ ...prev, lease_to_own_option: e.target.checked }))}
+                            className="w-5 h-5 rounded border-white/20 bg-neutral-700 text-green-500 focus:ring-white/30"
+                          />
+                        </div>
+                        <div>
+                          <label className={compactLabelClass}>
+                            Buyout Price (AED) {contractInfo.lease_to_own_option && '*'} <Tick valid={!contractInfo.lease_to_own_option || isPositiveNumber(contractInfo.buyout_price)} />
+                          </label>
+                          <input
+                            type="number"
+                            value={contractInfo.buyout_price}
+                            onChange={(e) => setContractInfo(prev => ({ ...prev, buyout_price: e.target.value }))}
+                            className={compactFieldClass + (!contractInfo.lease_to_own_option ? ' opacity-50' : '')}
+                            min="0"
+                            step="0.01"
+                            placeholder={selectedVehicle?.buyout_price ? `${selectedVehicle.buyout_price}` : "Buyout price"}
+                            disabled={!contractInfo.lease_to_own_option}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
 
             {/* Contract Tab */}
             {activeTab === 'contract' && (
-              <div className="bg-white/5 backdrop-blur-md rounded-xl p-4 border border-white/10 shadow-lg" style={{ boxShadow: 'inset 0 1px 0 rgba(255, 255, 255, 0.1)' }}>
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-white/10 backdrop-blur-sm text-white/80">
-                      <Car size={20} />
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                {/* Left Column - Customer & Vehicle Summary */}
+                <div className="bg-neutral-900/50 backdrop-blur-md rounded-xl p-4 border border-white/10">
+                  {/* Customer Info */}
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-white/10 text-white/80">
+                        <User size={16} />
+                      </div>
+                      Customer
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    <div className="py-2 bg-neutral-800/40 rounded-lg px-3">
+                      <span className="text-white/50 text-[10px] uppercase block">Name</span>
+                      <span className="text-white text-xs font-medium">{personalInfo.customer_name || '—'}</span>
                     </div>
-                    Generate Contract
-                  </h3>
-                </div>
-
-                {/* Contract Summary - Always Visible */}
-                <div className="bg-gradient-to-br from-black/40 via-neutral-900/30 to-black/50 backdrop-blur-sm border border-neutral-400/20 rounded-xl p-6 shadow-lg mb-6">
-                  <div className="mb-6">
-                    <h4 className="text-xl font-bold text-white mb-2">Contract Summary</h4>
-                    <p className="text-neutral-300 text-sm">
-                      Review the contract details before generating the agreement.
-                    </p>
+                    <div className="py-2 bg-neutral-800/40 rounded-lg px-3">
+                      <span className="text-white/50 text-[10px] uppercase block">Phone</span>
+                      <span className="text-white text-xs font-medium">{personalInfo.customer_phone || '—'}</span>
+                    </div>
+                    <div className="py-2 bg-neutral-800/40 rounded-lg px-3">
+                      <span className="text-white/50 text-[10px] uppercase block">Email</span>
+                      <span className="text-white text-xs font-medium truncate">{personalInfo.customer_email || '—'}</span>
+                    </div>
+                    <div className="py-2 bg-neutral-800/40 rounded-lg px-3">
+                      <span className="text-white/50 text-[10px] uppercase block">Emirates ID</span>
+                      <span className="text-white text-xs font-medium">{personalInfo.emirates_id_number || '—'}</span>
+                    </div>
+                    <div className="col-span-2 py-2 bg-neutral-800/40 rounded-lg px-3">
+                      <span className="text-white/50 text-[10px] uppercase block">Address</span>
+                      <span className="text-white text-xs font-medium">
+                        {addressInfo.address_line_1 ? 
+                          `${addressInfo.address_line_1}${addressInfo.city ? ', ' + addressInfo.city : ''}${addressInfo.emirate ? ', ' + addressInfo.emirate : ''}` 
+                          : '—'}
+                      </span>
+                    </div>
                   </div>
 
-                  {/* Contract Summary Content */}
-                    <div className="bg-gradient-to-br from-neutral-800/40 to-neutral-900/40 rounded-lg p-6 border border-neutral-400/20 backdrop-blur-sm mb-6">
-                      <h5 className="text-white font-semibold mb-4 flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full bg-neutral-400"></div>
-                        Contract Summary
-                      </h5>
-                      
-                      {/* Customer Information */}
-                      <div className="mb-6">
-                        <h6 className="text-neutral-300 font-medium mb-3 text-sm uppercase tracking-wide">Customer Information</h6>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-neutral-400">Full Name:</span>
-                            <p className="text-white font-medium">{personalInfo.customer_name || 'Not specified'}</p>
-                          </div>
-                          <div>
-                            <span className="text-neutral-400">Email:</span>
-                            <p className="text-white font-medium">{personalInfo.customer_email || 'Not specified'}</p>
-                          </div>
-                          <div>
-                            <span className="text-neutral-400">Phone:</span>
-                            <p className="text-white font-medium">{personalInfo.customer_phone || 'Not specified'}</p>
-                          </div>
-                          <div>
-                            <span className="text-neutral-400">Emirates ID:</span>
-                            <p className="text-white font-medium">{personalInfo.emirates_id_number || 'Not specified'}</p>
-                          </div>
-                          <div>
-                            <span className="text-neutral-400">Address:</span>
-                            <p className="text-white font-medium">
-                              {addressInfo.address_line_1 ? 
-                                `${addressInfo.address_line_1}${addressInfo.address_line_2 ? ', ' + addressInfo.address_line_2 : ''}${addressInfo.city ? ', ' + addressInfo.city : ''}${addressInfo.emirate ? ', ' + addressInfo.emirate : ''}` 
-                                : 'Not specified'}
-                            </p>
-                          </div>
+                  {/* Vehicle Info */}
+                  <div className="pt-4 border-t border-white/10">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-white/10 text-white/80">
+                          <Car size={16} />
                         </div>
+                        Vehicle
+                      </h3>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="py-2 bg-neutral-800/40 rounded-lg px-3">
+                        <span className="text-white/50 text-[10px] uppercase block">Make & Model</span>
+                        <span className="text-white text-xs font-medium">
+                          {selectedVehicle ? `${selectedVehicle.make} ${selectedVehicle.vehicle_model}` : '—'}
+                        </span>
                       </div>
-
-                      {/* Vehicle Information */}
-                      <div className="mb-6 pt-4 border-t border-neutral-400/20">
-                        <h6 className="text-neutral-300 font-medium mb-3 text-sm uppercase tracking-wide">Vehicle Information</h6>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                          <div>
-                            <span className="text-neutral-400">Vehicle:</span>
-                            <p className="text-white font-medium">
-                              {selectedVehicle ? `${selectedVehicle.make} ${selectedVehicle.vehicle_model} (${selectedVehicle.model_year})` : 'No vehicle selected'}
-                            </p>
-                          </div>
-                          <div>
-                            <span className="text-neutral-400">Stock Number:</span>
-                            <p className="text-white font-medium">{selectedVehicle?.stock_number || 'N/A'}</p>
-                          </div>
-                          <div>
-                            <span className="text-neutral-400">Exterior Color:</span>
-                            <p className="text-white font-medium">{selectedVehicle?.colour || 'Not specified'}</p>
-                          </div>
-                          <div>
-                            <span className="text-neutral-400">Interior Color:</span>
-                            <p className="text-white font-medium">{selectedVehicle?.interior_colour || 'Not specified'}</p>
-                          </div>
-                        </div>
+                      <div className="py-2 bg-neutral-800/40 rounded-lg px-3">
+                        <span className="text-white/50 text-[10px] uppercase block">Year</span>
+                        <span className="text-white text-xs font-medium">{selectedVehicle?.model_year || '—'}</span>
                       </div>
-
-                      {/* Contract Terms */}
-                      <div className="pt-4 border-t border-neutral-400/20">
-                        <h6 className="text-neutral-300 font-medium mb-3 text-sm uppercase tracking-wide">Contract Terms</h6>
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 text-sm">
-                          <div>
-                            <span className="text-neutral-400">Monthly Payment:</span>
-                            <p className="text-white font-bold text-base">AED {contractInfo.monthly_payment ? parseFloat(contractInfo.monthly_payment).toLocaleString() : '0'}</p>
-                          </div>
-                          <div>
-                            <span className="text-neutral-400">Security Deposit:</span>
-                            <p className="text-white font-bold text-base">AED {contractInfo.security_deposit ? parseFloat(contractInfo.security_deposit).toLocaleString() : '0'}</p>
-                          </div>
-                          <div>
-                            <span className="text-neutral-400">Lease Term:</span>
-                            <p className="text-white font-medium">{contractInfo.lease_term_months || '0'} months</p>
-                          </div>
-                          <div>
-                            <span className="text-neutral-400">Lease Start Date:</span>
-                            <p className="text-white font-medium">{contractInfo.lease_start_date || 'Not set'}</p>
-                          </div>
-                          <div>
-                            <span className="text-neutral-400">Lease End Date:</span>
-                            <p className="text-white font-medium">{contractInfo.lease_end_date || 'Not set'}</p>
-                          </div>
-                          <div>
-                            <span className="text-neutral-400">Excess Mileage Charges:</span>
-                            <p className="text-white font-medium">
-                              {contractInfo.excess_mileage_charges ? `AED ${parseFloat(contractInfo.excess_mileage_charges).toFixed(2)}/km` : 'Not set'}
-                            </p>
-                          </div>
-                          {contractInfo.lease_to_own_option && (
-                            <>
-                              <div>
-                                <span className="text-neutral-400">Lease-to-Own:</span>
-                                <p className="text-green-400 font-medium">Yes</p>
-                              </div>
-                              <div>
-                                <span className="text-neutral-400">Buyout Price:</span>
-                                <p className="text-white font-bold text-base">AED {contractInfo.buyout_price ? parseFloat(contractInfo.buyout_price).toLocaleString() : '0'}</p>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                        
-                        
-                        {/* Additional Notes */}
-                        {notes && (
-                          <div className="mt-4 pt-4 border-t border-neutral-400/20">
-                            <div>
-                              <span className="text-neutral-400 text-sm">Additional Notes:</span>
-                              <p className="text-white font-medium text-sm mt-1 bg-neutral-800/30 rounded p-2 border border-neutral-400/20">
-                                {notes}
-                              </p>
-                            </div>
-                          </div>
-                        )}
+                      <div className="py-2 bg-neutral-800/40 rounded-lg px-3">
+                        <span className="text-white/50 text-[10px] uppercase block">Stock #</span>
+                        <span className="text-white text-xs font-medium">{selectedVehicle?.stock_number || '—'}</span>
+                      </div>
+                      <div className="py-2 bg-neutral-800/40 rounded-lg px-3">
+                        <span className="text-white/50 text-[10px] uppercase block">Colors</span>
+                        <span className="text-white text-xs font-medium">{selectedVehicle?.colour || '—'} / {selectedVehicle?.interior_colour || '—'}</span>
                       </div>
                     </div>
+                  </div>
                 </div>
 
-                {/* Generate Agreement Section */}
-                <div className="bg-gradient-to-br from-black/40 via-neutral-900/30 to-black/50 backdrop-blur-sm border border-neutral-400/20 rounded-xl p-6 shadow-lg">
-                  <div className="mb-6">
-                    <h4 className="text-xl font-bold text-white mb-2">Lease Agreement</h4>
-                    <p className="text-neutral-300 text-sm">
-                      {generatedContract ? 'Manage the generated lease agreement document.' : 'Generate a comprehensive lease agreement document for this customer.'}
-                    </p>
+                {/* Right Column - Contract Terms & Agreement */}
+                <div className="bg-neutral-900/50 backdrop-blur-md rounded-xl p-4 border border-white/10 flex flex-col">
+                  {/* Contract Terms */}
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-white/10 text-white/80">
+                        <DollarSign size={16} />
+                      </div>
+                      Contract Terms
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mb-4">
+                    <div className="py-2.5 bg-neutral-800/40 rounded-lg px-3">
+                      <span className="text-white/50 text-[10px] uppercase block">Monthly Payment</span>
+                      <span className="text-white text-sm font-bold">
+                        AED {contractInfo.monthly_payment ? parseFloat(contractInfo.monthly_payment).toLocaleString() : '0'}
+                      </span>
+                    </div>
+                    <div className="py-2.5 bg-neutral-800/40 rounded-lg px-3">
+                      <span className="text-white/50 text-[10px] uppercase block">Security Deposit</span>
+                      <span className="text-white text-sm font-bold">
+                        AED {contractInfo.security_deposit ? parseFloat(contractInfo.security_deposit).toLocaleString() : '0'}
+                      </span>
+                    </div>
+                    <div className="col-span-2 grid grid-cols-3 gap-2">
+                      <div className="py-2 bg-neutral-800/40 rounded-lg px-3">
+                        <span className="text-white/50 text-[10px] uppercase block">Lease Term</span>
+                        <span className="text-white text-xs font-medium">{contractInfo.lease_term_months || '0'} months</span>
+                      </div>
+                      <div className="py-2 bg-neutral-800/40 rounded-lg px-3">
+                        <span className="text-white/50 text-[10px] uppercase block">Monthly Mileage</span>
+                        <span className="text-white text-xs font-medium">{contractInfo.monthly_mileage || '—'} KM</span>
+                      </div>
+                      <div className="py-2 bg-neutral-800/40 rounded-lg px-3">
+                        <span className="text-white/50 text-[10px] uppercase block">Excess Mileage</span>
+                        <span className="text-white text-xs font-medium">
+                          {contractInfo.excess_mileage_charges ? `AED ${parseFloat(contractInfo.excess_mileage_charges).toFixed(2)}/km` : '—'}
+                        </span>
+                      </div>
+                    </div>
+                    <div className="py-2 bg-neutral-800/40 rounded-lg px-3">
+                      <span className="text-white/50 text-[10px] uppercase block">Start Date</span>
+                      <span className="text-white text-xs font-medium">{contractInfo.lease_start_date || '—'}</span>
+                    </div>
+                    <div className="py-2 bg-neutral-800/40 rounded-lg px-3">
+                      <span className="text-white/50 text-[10px] uppercase block">End Date</span>
+                      <span className="text-white text-xs font-medium">{contractInfo.lease_end_date || '—'}</span>
+                    </div>
+                    {contractInfo.lease_to_own_option && (
+                      <>
+                        <div className="py-2 bg-green-900/30 rounded-lg px-3 border border-green-500/20">
+                          <span className="text-green-400/70 text-[10px] uppercase block">Lease-to-Own</span>
+                          <span className="text-green-400 text-xs font-medium">Yes</span>
+                        </div>
+                        <div className="py-2.5 bg-neutral-800/40 rounded-lg px-3">
+                          <span className="text-white/50 text-[10px] uppercase block">Buyout Price</span>
+                          <span className="text-white text-sm font-bold">
+                            AED {contractInfo.buyout_price ? parseFloat(contractInfo.buyout_price).toLocaleString() : '0'}
+                          </span>
+                        </div>
+                      </>
+                    )}
                   </div>
 
-                  {!generatedContract ? (
-                    /* Generate Button */
-                    <div className="flex justify-center">
+                  {/* Lease Agreement Section */}
+                  <div className="pt-4 border-t border-white/10 flex-1 flex flex-col">
+                    <div className="flex items-center justify-between mb-3">
+                      <h3 className="text-sm font-semibold text-white flex items-center gap-2">
+                        <div className="p-1.5 rounded-lg bg-white/10 text-white/80">
+                          <FileText size={16} />
+                        </div>
+                        Lease Agreement
+                      </h3>
+                      {generatedContract && (
+                        <span className="text-[10px] text-green-400 bg-green-500/10 px-2 py-0.5 rounded-full">Ready</span>
+                      )}
+                    </div>
+
+                    <div className="flex-1 flex flex-col justify-center space-y-2">
+                      {/* Generate / Regenerate Button */}
                       <button
+                        type="button"
                         onClick={handleGenerateLeaseAgreement}
                         disabled={generatingAgreement}
-                        className="px-8 py-3 bg-gradient-to-r from-neutral-600 to-neutral-700 hover:from-neutral-500 hover:to-neutral-600 disabled:from-neutral-700 disabled:to-neutral-800 text-white font-semibold rounded-lg transition-all duration-200 flex items-center gap-3 border border-neutral-400/30 shadow-lg hover:shadow-xl disabled:cursor-not-allowed"
+                        className="w-full px-4 py-2.5 bg-gradient-to-r from-neutral-600 to-neutral-700 hover:from-neutral-500 hover:to-neutral-600 disabled:from-neutral-700 disabled:to-neutral-800 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2 border border-neutral-400/30 disabled:cursor-not-allowed text-xs"
                       >
                         {generatingAgreement ? (
                           <>
-                            <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
-                            Generating Agreement...
+                            <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+                            Generating...
                           </>
                         ) : (
                           <>
-                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
-                            Generate Lease Agreement
+                            {generatedContract ? 'Regenerate Agreement' : 'Generate Agreement'}
                           </>
                         )}
                       </button>
-                    </div>
-                  ) : (
-                    /* Generated Document Section - Styled like invoice document */
-                    <div className="bg-gradient-to-br from-amber-900/20 to-amber-800/10 backdrop-blur-sm rounded-lg p-4 border border-amber-500/30">
-                      <div className="flex items-center gap-2 mb-3">
-                        <div className="w-2 h-2 rounded-full bg-amber-400"></div>
-                        <h3 className="text-amber-400 font-semibold text-sm">Lease Agreement Document Created</h3>
-                      </div>
-                      <p className="text-amber-300/80 text-xs mb-4">
-                        You can regenerate the document or send for signing.
-                      </p>
 
-                      {/* Action Buttons */}
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => window.open(generatedContract.url, '_blank')}
-                          className="flex-1 px-3 py-2 bg-gray-700/50 hover:bg-gray-600/50 text-white border border-gray-600/50 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-2"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                          </svg>
-                          View PDF
-                        </button>
-                        <button
-                          onClick={() => {
-                            const link = document.createElement('a');
-                            link.href = generatedContract.url;
-                            link.download = generatedContract.filename;
-                            link.target = '_blank';
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
-                          }}
-                          className="flex-1 px-3 py-2 bg-gray-700/50 hover:bg-gray-600/50 text-white border border-gray-600/50 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-2"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                          Download PDF
-                        </button>
-                        <button
-                          onClick={() => {
-                            // TODO: Implement send for signing functionality
-                            alert('Send for signing functionality will be implemented soon.');
-                          }}
-                          className="flex-1 px-3 py-2 bg-gray-700/50 hover:bg-gray-600/50 text-white border border-gray-600/50 rounded-lg text-xs font-medium transition-all duration-200 flex items-center justify-center gap-2"
-                        >
-                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                          </svg>
-                          Send for Signing
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                      {/* Document Actions - Only show when generated */}
+                      {generatedContract && (
+                        <>
+                          <div className="grid grid-cols-2 gap-2">
+                            <button
+                              type="button"
+                              onClick={() => window.open(generatedContract.url, '_blank')}
+                              className="px-3 py-2 bg-neutral-800/60 hover:bg-neutral-700/60 text-white border border-white/10 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                              </svg>
+                              View
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const link = document.createElement('a');
+                                link.href = generatedContract.url;
+                                link.download = generatedContract.filename;
+                                link.target = '_blank';
+                                document.body.appendChild(link);
+                                link.click();
+                                document.body.removeChild(link);
+                              }}
+                              className="px-3 py-2 bg-neutral-800/60 hover:bg-neutral-700/60 text-white border border-white/10 rounded-lg text-xs font-medium transition-all flex items-center justify-center gap-1.5"
+                            >
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                              </svg>
+                              Download
+                            </button>
+                          </div>
+                          
+                          {/* Send for Signing Button */}
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (!personalInfo.customer_email) {
+                                alert('Please add customer email address before sending for signing.');
+                                return;
+                              }
+                              alert('Send for signing functionality will be implemented with DocuSign integration.');
+                            }}
+                            className="w-full px-4 py-2.5 bg-gradient-to-r from-amber-600 to-amber-700 hover:from-amber-500 hover:to-amber-600 text-white font-medium rounded-lg transition-all duration-200 flex items-center justify-center gap-2 border border-amber-500/30 text-xs"
+                          >
+                            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            Send for Signing
+                          </button>
+                        </>
+                      )}
 
-                  {agreementStatusMsg && (
-                    <div className="mt-4 p-3 bg-green-500/10 border border-green-400/30 rounded-lg">
-                      <p className="text-green-400 text-sm text-center">{agreementStatusMsg}</p>
+                      {agreementStatusMsg && (
+                        <div className="p-2 bg-green-500/10 border border-green-400/30 rounded-lg">
+                          <p className="text-green-400 text-xs text-center">{agreementStatusMsg}</p>
+                        </div>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
               </div>
             )}
